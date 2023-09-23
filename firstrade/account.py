@@ -1,7 +1,6 @@
 import requests
 import pickle
 import re
-from bs4 import BeautifulSoup
 
 
 class FTSession:
@@ -136,15 +135,25 @@ class FTSession:
     def save_cookies(self):
         with open('cookies.pkl', 'wb') as f:
             pickle.dump(self.session.cookies.get_dict(), f)
-    
+
     def __getattr__(self, name):
         # forward unknown attribute access to session object
         return getattr(self.session, name)
-        
+
 
 class FTAccountData:
-     
-    def accounts(self):
+    def __init__(self, session):
+        self.session = session
+        self.cookies = self.session.cookies
+        self.all_accounts = []
+        self.account_numbers = []
+        self.account_types = []
+        self.account_owners = []
+        self.account_balances = []
+        self.get_accounts()
+
+    def get_accounts(self):
+        all_account_info = []
         url = '	https://invest.firstrade.com/cgi-bin/getaccountlist'
         headers = {
             'Host': 'invest.firstrade.com',
@@ -165,49 +174,17 @@ class FTAccountData:
             'Accept-Language': 'en-US,en;q=0.9'
         }
         html_string = self.session.get(url=url, headers=headers, cookies=self.cookies).text
-        self.account_numbers = re.findall(r"accountChangeSubmit\('(\d+)',", html_string)
-        return self.account_numbers
-        
-
-symbol = 'INTC'
-url = f'https://invest.firstrade.com/cgi-bin/getxml?page=quo&quoteSymbol={symbol}'
-headers = {
-    'Accept': '*/*',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Connection': 'keep-alive',
-    'Host': 'invest.firstrade.com',
-    'Referer': 'https://invest.firstrade.com/cgi-bin/main',
-    'Sec-Fetch-Dest': 'empty',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'same-origin',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.1938.81',
-    'X-Requested-With': 'XMLHttpRequest',
-    'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24", "Microsoft Edge";v="116"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Windows"'
-}
-symbol_data = firstrade_session.get(url=url, headers=headers)
-soup = BeautifulSoup(symbol_data.text, 'xml')
-quote = soup.find('quote')
-symbol = quote.find('symbol').text
-exchange = quote.find('exchange').text
-bid = quote.find('bid').text
-ask = quote.find('ask').text
-last = quote.find('last').text
-change = quote.find('change').text
-high = quote.find('high').text
-low = quote.find('low').text
-volume = quote.find('vol').text
-company_name = quote.find('companyname').text
-
-print(f"Symbol: {symbol}")
-print(f"Exchange: {exchange}")
-print(f"Bid: {bid}")
-print(f"Ask: {ask}")
-print(f"Last: {last}")
-print(f"Change: {change}")
-print(f"High: {high}")
-print(f"Low: {low}")
-print(f"Volume: {volume}")
-print(f"Company Name: {company_name}")
+        regex_accounts = re.findall(r'<tr><th><a href=".*?">(.*?)</a></th><td>(.*?)</td></tr>', html_string)
+        for match in regex_accounts:
+            start = match[0].split('-')[1]
+            type = start.split(' ')[0]
+            owner = start.split(' ')[1] + start.split(' ')[2]
+            account = match[0].split('-')[0]
+            balance = float(match[1].replace(',', ''))
+            self.account_types.append(type)
+            self.account_owners.append(owner)
+            self.account_numbers.append(account)
+            self.account_balances.append(balance)
+            all_account_info.append({account: {'Type': type, 'Owner': owner, 'Balance': balance}})
+            print(f"Type: {type}, Account#: {account} Owner: {owner}, Balance: {balance}")
+        self.all_accounts = all_account_info
