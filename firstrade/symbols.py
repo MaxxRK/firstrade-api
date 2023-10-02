@@ -20,9 +20,10 @@ class SymbolInfo:
         self.get_quote()
 
     def get_quote(self):
-        url = urls.quote(self.symbol)
-        headers = urls.quote_headers()
-        symbol_data = self.ft_session.get(url=url, headers=headers)
+        symbol_data = self.ft_session.get(
+            url=urls.quote(self.symbol),
+            headers=urls.session_headers()
+        )
         soup = BeautifulSoup(symbol_data.text, 'xml')
         quote = soup.find('quote')
         self.symbol = quote.find('symbol').text

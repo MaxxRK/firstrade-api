@@ -16,17 +16,13 @@ class FTSession:
 
     def login(self):
         cookies = self.load_cookies()
-        headers = urls.init_headers()
+        headers = urls.session_headers()
         cookies = requests.utils.cookiejar_from_dict(cookies)
         self.session.cookies.update(cookies)
-        url = urls.get_xml()
-        if "/cgi-bin/sessionfailed?reason=6" in self.session.get(url=url, headers=headers, cookies=cookies).text:
-            url = urls.login()
-            headers = urls.init_headers_two()
-            self.session.get(url=url, headers=headers)
-            url = urls.login()
-            headers = urls.login_headers()
+        if "/cgi-bin/sessionfailed?reason=6" in self.session.get(url=urls.get_xml(), headers=urls.session_headers(), cookies=cookies).text:
 
+            self.session.get(url=urls.login(), headers=headers)
+            
             data = {
                 'redirect': '',
                 'ft_locale': 'en-us',
@@ -36,9 +32,8 @@ class FTSession:
                 'destination_page': 'home'
             }
 
-            self.session.post(url=url, headers=headers, cookies=self.session.cookies, data=data)
-            url = urls.pin()
-            headers = urls.pin_headers()
+            self.session.post(url=urls.login(), headers=headers, cookies=self.session.cookies, data=data)
+            
             data = {
                 'destination_page': 'home',
                 'pin': self.pin,
@@ -46,8 +41,8 @@ class FTSession:
                 'sring': '0',
                 'pin': self.pin
             }
-
-            self.session.post(url=url, headers=headers, cookies=self.session.cookies, data=data)
+            #headers = urls.pin_headers()
+            self.session.post(url=urls.pin(), headers=headers, cookies=self.session.cookies, data=data)
             self.save_cookies()
         self.cookies = self.session.cookies
 
@@ -81,9 +76,11 @@ class FTAccountData:
 
     def get_accounts(self):
         all_account_info = []
-        url = urls.account_list()
-        headers = urls.account_headers()
-        html_string = self.session.get(url=url, headers=headers, cookies=self.cookies).text
+        html_string = self.session.get(
+            url=urls.account_list(),
+            headers=urls.session_headers(),
+            cookies=self.cookies
+        ).text
         regex_accounts = re.findall(
             r'<tr><th><a href=".*?">(.*?)</a></th><td>(.*?)</td></tr>', html_string
         )
@@ -100,3 +97,5 @@ class FTAccountData:
             all_account_info.append({account: {'Type': type, 'Owner': owner, 'Balance': balance}})
             print(f"Type: {type}, Account#: {account} Owner: {owner}, Balance: {balance}")
         self.all_accounts = all_account_info
+        
+    
