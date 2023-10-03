@@ -95,7 +95,6 @@ class FTAccountData:
             self.account_numbers.append(account)
             self.account_balances.append(balance)
             all_account_info.append({account: {'Type': type, 'Owner': owner, 'Balance': balance}})
-            print(f"Type: {type}, Account#: {account} Owner: {owner}, Balance: {balance}")
+            # print(f"Type: {type}, Account#: {account} Owner: {owner}, Balance: {balance}")
         self.all_accounts = all_account_info
-        
-    
+

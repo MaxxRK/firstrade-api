@@ -6,12 +6,12 @@ from bs4 import BeautifulSoup
 
 class Order:
     def __init__(self, ft_session: FTSession):
-        self.ft_session = ft_session,
-        self.symbol = '',
-        self.order_type = '',
-        self.quantity = '',
-        self.price = 0.0,
-        self.duration = '',
+        self.ft_session = ft_session
+        self.symbol = ''
+        self.order_type = ''
+        self.quantity = ''
+        self.price = 0.0
+        self.duration = ''
         self.order_confirmation = {}
 
     def place_order(self, account, symbol, order_type, quantity, price, duration, dry_run=True):
@@ -19,6 +19,9 @@ class Order:
             previewOrders = '1'
         else:
             previewOrders = ''
+
+        if price == '0.00' and order_type == '1':
+            price = ''
 
         data = {
             'submiturl': '/cgi-bin/orderbar',
@@ -33,7 +36,7 @@ class Order:
             'viewederror': '',
             'stocksubmittedcompanyname1': '',
             'accountId': account,
-            'transactionType': 'S',
+            'transactionType': 'B',
             'quantity': quantity,
             'symbol': symbol,
             'priceType': order_type,
@@ -56,23 +59,30 @@ class Order:
             headers=urls.session_headers(),
             data=data
         ).text, 'xml')
+
         order_success = order_data.find('success').text.strip()
         self.order_confirmation['success'] = order_success
         action_data = order_data.find('actiondata').text.strip()
-        # Extract the table data
-        table_start = action_data.find('<table')
-        table_end = action_data.find('</table>') + len('</table>')
-        table_data = action_data[table_start:table_end]
-        table_data = BeautifulSoup(table_data, 'xml')
-        titles = table_data.find('th')
-        data = table_data.find('td')
-        for i, title in enumerate(titles):
-            self.order_confirmation[title] = data[i]
-        
-        print(self.order_confirmation)
-        
-        start_index = action_data.find('Your order reference number is: ') + len('Your order reference number is: ')
-        end_index = action_data.find('</div>', start_index)
-        order_number = action_data[start_index:end_index]
-        self.order_confirmation['orderid'] = order_number
+        if order_success != "No":
+            # Extract the table data
+            table_start = action_data.find('<table')
+            table_end = action_data.find('</table>') + len('</table>')
+            table_data = action_data[table_start:table_end]
+            table_data = BeautifulSoup(table_data, 'xml')
+            titles = table_data.find_all('th')
+            data = table_data.find_all('td')
+            for i, title in enumerate(titles):
+                self.order_confirmation[f'{title.get_text()}'] = data[i].get_text()
+            if not dry_run:
+                start_index = action_data.find('Your order reference number is: ') + len('Your order reference number is: ')
+                end_index = action_data.find('</div>', start_index)
+                order_number = action_data[start_index:end_index]
+            else:
+                start_index = action_data.find('id="') + len('id="')
+                end_index = action_data.find('" style=', start_index)
+                order_number = action_data[start_index:end_index]
+            self.order_confirmation['orderid'] = order_number
+        else:
+            self.order_confirmation['actiondata'] = action_data
+        self.order_confirmation['errcode'] = order_data.find('errcode').text.strip()
         return self.order_confirmation
