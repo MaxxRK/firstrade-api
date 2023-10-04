@@ -1,9 +1,9 @@
 Metadata-Version: 2.1
 Name: firstrade
-Version: 0.0.1
+Version: 0.0.2
 Summary: An unofficial API for Firstrade
 Home-page: https://github.com/MaxxRK/firstrade-api
-Download-URL: https://github.com/MaxxRK/firstrade-api/archive/refs/tags/v_001.tar.gz
+Download-URL: https://github.com/MaxxRK/firstrade-api/archive/refs/tags/v_002.tar.gz
 Author: MaxxRK
 Author-email: maxxrk@pm.me
 License: MIT
