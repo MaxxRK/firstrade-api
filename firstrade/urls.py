@@ -23,6 +23,7 @@ def quote(symbol):
 def orderbar():
     return 'https://invest.firstrade.com/cgi-bin/orderbar'
 
+
 def session_headers():
     headers = {
         'Accept': '*/*',

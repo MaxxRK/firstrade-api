@@ -1,26 +1,69 @@
 from account import FTSession
 import urls
-import re
+from enum import Enum
 from bs4 import BeautifulSoup
 
 
+class PriceType(str, Enum):
+    """
+    This is an :class: 'enum.Enum' that contains the valid price types for an order.
+    """
+    LIMIT = '2'
+    MARKET = '1'
+    STOP = '3'
+    STOP_LIMIT = '4'
+    TRAILING_STOP_DOLLAR = '5'
+    TRAILING_STOP_PERCENT = '6'
+
+
+class Duration(str, Enum):
+    """
+    This is an :class:'~enum.Enum' that contains the valid durations for an order.
+    """
+    DAY = '0'
+    GT90 = '1'
+    PRE_MARKET = 'A'
+    AFTER_MARKET = 'P'
+    DAY_EXT = 'D'
+
+
 class Order:
+    """
+    This class contains information about an order. It also contains a method to place an order.
+    """
     def __init__(self, ft_session: FTSession):
         self.ft_session = ft_session
-        self.symbol = ''
-        self.order_type = ''
-        self.quantity = ''
-        self.price = 0.0
-        self.duration = ''
         self.order_confirmation = {}
 
-    def place_order(self, account, symbol, order_type, quantity, price, duration, dry_run=True):
+    def place_order(
+        self, account, symbol, order_type: PriceType,
+        quantity, duration: Duration, price=0.00, dry_run=True
+    ):
+
+        """
+        Builds and places an order.
+        :attr: 'order_confirmation` contains the order confirmation data after order placement.
+
+        Args:
+            account (str): Account number of the account to place the order in.
+            symbol (str): Ticker to place the order for.
+            order_type (PriceType): Price Type i.e. LIMIT, MARKET, STOP, etc.
+            quantity (float): The number of shares to buy.
+            duration (Duration): Duration of the order i.e. DAY, GT90, etc.
+            price (float, optional): The price to buy the shares at. Defaults to 0.00.
+            dry_run (bool, optional): Whether you want the order to be placed or not. 
+                                      Defaults to True.
+
+        Returns:
+            Order:order_confirmation: Dictionary containing the order confirmation data.
+        """
+
         if dry_run:
             previewOrders = '1'
         else:
             previewOrders = ''
 
-        if price == '0.00' and order_type == '1':
+        if order_type == PriceType.MARKET:
             price = ''
 
         data = {
@@ -59,9 +102,9 @@ class Order:
             headers=urls.session_headers(),
             data=data
         ).text, 'xml')
-
+        order_confirmation = {}
         order_success = order_data.find('success').text.strip()
-        self.order_confirmation['success'] = order_success
+        order_confirmation['success'] = order_success
         action_data = order_data.find('actiondata').text.strip()
         if order_success != "No":
             # Extract the table data
@@ -72,7 +115,7 @@ class Order:
             titles = table_data.find_all('th')
             data = table_data.find_all('td')
             for i, title in enumerate(titles):
-                self.order_confirmation[f'{title.get_text()}'] = data[i].get_text()
+                order_confirmation[f'{title.get_text()}'] = data[i].get_text()
             if not dry_run:
                 start_index = action_data.find('Your order reference number is: ') + len('Your order reference number is: ')
                 end_index = action_data.find('</div>', start_index)
@@ -81,8 +124,8 @@ class Order:
                 start_index = action_data.find('id="') + len('id="')
                 end_index = action_data.find('" style=', start_index)
                 order_number = action_data[start_index:end_index]
-            self.order_confirmation['orderid'] = order_number
+            order_confirmation['orderid'] = order_number
         else:
-            self.order_confirmation['actiondata'] = action_data
-        self.order_confirmation['errcode'] = order_data.find('errcode').text.strip()
-        return self.order_confirmation
+            order_confirmation['actiondata'] = action_data
+        order_confirmation['errcode'] = order_data.find('errcode').text.strip()
+        self.order_confirmation = order_confirmation

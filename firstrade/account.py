@@ -5,24 +5,39 @@ import urls
 
 
 class FTSession:
-    def __init__(self, username, password, pin):
+    """
+    Class creating a session for Firstrade.
+    """
+    def __init__(self, username, password, pin, persistent_session=False):
+        """
+        Initializes a new instance of the FTSession class.
+
+        Args:
+            username (str): Firstrade login username.
+            password (str): Firstrade login password.
+            pin (str): Firstrade login pin.
+            persistent_session (bool, optional): Whether the user wants to save the session cookies. Defaults to False.
+        """
         self.username = username
         self.password = password
         self.pin = pin
+        self.persistent_session = persistent_session
         self.session = requests.Session()
         self.cookies = {}
-        self.account_numbers = []
         self.login()
 
     def login(self):
-        cookies = self.load_cookies()
+        """
+        Method to validate and login to the Firstrade platform.
+        """
         headers = urls.session_headers()
+        cookies = self.load_cookies()
         cookies = requests.utils.cookiejar_from_dict(cookies)
         self.session.cookies.update(cookies)
-        if "/cgi-bin/sessionfailed?reason=6" in self.session.get(url=urls.get_xml(), headers=urls.session_headers(), cookies=cookies).text:
-
+        if "/cgi-bin/sessionfailed?reason=6" in self.session.get(
+            url=urls.get_xml(), headers=urls.session_headers(), cookies=cookies
+        ).text:
             self.session.get(url=urls.login(), headers=headers)
-            
             data = {
                 'redirect': '',
                 'ft_locale': 'en-us',
@@ -32,8 +47,10 @@ class FTSession:
                 'destination_page': 'home'
             }
 
-            self.session.post(url=urls.login(), headers=headers, cookies=self.session.cookies, data=data)
-            
+            self.session.post(
+                url=urls.login(), headers=headers,
+                cookies=self.session.cookies, data=data
+            )
             data = {
                 'destination_page': 'home',
                 'pin': self.pin,
@@ -41,30 +58,60 @@ class FTSession:
                 'sring': '0',
                 'pin': self.pin
             }
-            #headers = urls.pin_headers()
-            self.session.post(url=urls.pin(), headers=headers, cookies=self.session.cookies, data=data)
-            self.save_cookies()
+
+            self.session.post(
+                url=urls.pin(), headers=headers,
+                cookies=self.session.cookies, data=data
+            )
+            if self.persistent_session:
+                self.save_cookies()
         self.cookies = self.session.cookies
 
     def load_cookies(self):
+        """
+        Checks if session cookies were saved.
+
+        Returns:
+            Dict: Dictionary of cookies. Nom Nom
+        """
         try:
             with open('cookies.pkl', 'rb') as f:
                 cookies = pickle.load(f)
-        except:
+        except FileNotFoundError:
             cookies = {}
         return cookies
 
     def save_cookies(self):
+        """
+        Saves session cookies to a file.
+        """
         with open('cookies.pkl', 'wb') as f:
             pickle.dump(self.session.cookies.get_dict(), f)
 
     def __getattr__(self, name):
-        # forward unknown attribute access to session object
+        """
+        Forwards unknown attribute access to session object.
+
+        Args:
+            name (str): The name of the attribute to be accessed.
+
+        Returns:
+            The value of the requested attribute from the session object.
+        """
         return getattr(self.session, name)
 
 
 class FTAccountData:
+    """
+    Dataclass for storing account information.
+    """
     def __init__(self, session):
+        """
+        Initializes a new instance of the FTAccountData class.
+
+        Args:
+            session (requests.Session): The session object used for making HTTP requests.
+        """
         self.session = session
         self.cookies = self.session.cookies
         self.all_accounts = []
@@ -72,9 +119,6 @@ class FTAccountData:
         self.account_types = []
         self.account_owners = []
         self.account_balances = []
-        self.get_accounts()
-
-    def get_accounts(self):
         all_account_info = []
         html_string = self.session.get(
             url=urls.account_list(),
@@ -95,6 +139,5 @@ class FTAccountData:
             self.account_numbers.append(account)
             self.account_balances.append(balance)
             all_account_info.append({account: {'Type': type, 'Owner': owner, 'Balance': balance}})
-            # print(f"Type: {type}, Account#: {account} Owner: {owner}, Balance: {balance}")
         self.all_accounts = all_account_info
 
