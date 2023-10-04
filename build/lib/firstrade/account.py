@@ -1,7 +1,7 @@
 import requests
 import pickle
 import re
-from firstrade import urls
+import urls
 
 
 class FTSession:
@@ -66,10 +66,6 @@ class FTSession:
             if self.persistent_session:
                 self.save_cookies()
         self.cookies = self.session.cookies
-        if "/cgi-bin/sessionfailed?reason=6" in self.session.get(
-            url=urls.get_xml(), headers=urls.session_headers(), cookies=cookies
-        ).text:
-            raise Exception('Login failed. Check your credentials.')
 
     def load_cookies(self):
         """

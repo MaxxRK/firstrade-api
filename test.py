@@ -1,6 +1,6 @@
-import account
-import symbols
-import order
+from firstrade import account
+from firstrade import symbols
+from firstrade import order
 
 # Create a session
 ft_ss = account.FTSession(username='', password='', pin='')

@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
-from firstrade.account import FTSession
-from firstrade import urls
+from account import FTSession
+import urls
 
 
 class SymbolQuote:
