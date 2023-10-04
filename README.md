@@ -8,7 +8,6 @@
  ---
 
 ## Contribution
----
 I am new to coding and new to open-source. I would love any help and suggestions!
 
 ## Setup
