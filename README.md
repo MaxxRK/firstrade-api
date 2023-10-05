@@ -3,7 +3,7 @@
 
  This is not an official api! This api's functionality may change at any time.
 
- This api provides a means of buying and selling stocks through Firstrade. It usses the Session class from requests to get authoriztion cookies. The rest is done with reverse engineered requests to Firstrade's API. 
+ This api provides a means of buying and selling stocks through Firstrade. It uses the Session class from requests to get authorization cookies. The rest is done with reverse engineered requests to Firstrade's API. 
 
  ---
 
