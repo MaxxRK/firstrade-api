@@ -56,7 +56,14 @@ print(f"Low: {quote.low}")
 print(f"Volume: {quote.volume}")
 print(f"Company Name: {quote.company_name}")
 
+# Get positions and print them out for an account.
+positions = ft_accounts.get_positions(account=ft_accounts.account_numbers[1])
+for key in ft_accounts.securities_held:
+    print(f"Quantity {ft_accounts.securities_held[key]['quantity']} of security {key} held in account {ft_accounts.account_numbers[1]}")
+
+# Create an order object.   
 ft_order = order.Order(ft_ss)
+
 # Place order and print out order confirmation data.
 ft_order.place_order(
     ft_accounts.account_numbers[0],
@@ -89,9 +96,9 @@ This code is also in test.py
  - [x] Get Quotes
  - [x] Get Account Data
  - [x] Place Orders and Receive order confirmation
+ - [x] Get Currently Held Positions
 
 ## TO DO
-- [ ] Get positions
 - [ ] Check on placed order status.
 - [ ] Cancel placed orders
 - [ ] Options

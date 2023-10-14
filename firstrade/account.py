@@ -1,6 +1,7 @@
 import requests
 import pickle
 import re
+from bs4 import BeautifulSoup
 from firstrade import urls
 
 
@@ -123,6 +124,7 @@ class FTAccountData:
         self.account_types = []
         self.account_owners = []
         self.account_balances = []
+        self.securities_held = {}
         all_account_info = []
         html_string = self.session.get(
             url=urls.account_list(),
@@ -145,3 +147,38 @@ class FTAccountData:
             all_account_info.append({account: {'Type': type, 'Owner': owner, 'Balance': balance}})
         self.all_accounts = all_account_info
 
+    def get_positions(self, account):
+        """Gets currently held positions for a given account.
+
+        Args:
+            account (str): Account number of the account you want to get positions for.
+
+        Returns:
+            self.securities_held {dict}: Dict of held positions with the pos. ticker as the key.
+        """
+        data = {
+            'page': 'pos',
+            'accountId': str(account),
+        }
+        position_soup = BeautifulSoup(self.session.post(
+            url=urls.get_xml(),
+            headers=urls.session_headers(),
+            data=data,
+            cookies=self.cookies
+        ).text, 'xml')
+
+        print(position_soup)
+        tickers = position_soup.find_all('symbol')
+        quantity = position_soup.find_all('quantity')
+        price = position_soup.find_all('price')
+        change = position_soup.find_all('change')
+        change_percent = position_soup.find_all('changepercent')
+        vol = position_soup.find_all('vol')
+        for i, ticker in enumerate(tickers):
+            ticker = ticker.text
+            self.securities_held[ticker] = {
+                'quantity': quantity[i].text,
+                'price': price[i].text, 'change': change[i].text,
+                'change_percent': change_percent[i].text, 'vol': vol[i].text
+            }
+        return self.securities_held
