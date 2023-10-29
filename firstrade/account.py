@@ -167,7 +167,6 @@ class FTAccountData:
             cookies=self.cookies
         ).text, 'xml')
 
-        print(position_soup)
         tickers = position_soup.find_all('symbol')
         quantity = position_soup.find_all('quantity')
         price = position_soup.find_all('price')
