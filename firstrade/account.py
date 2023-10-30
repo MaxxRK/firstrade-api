@@ -1,6 +1,7 @@
 import requests
 import pickle
 import re
+import os
 from bs4 import BeautifulSoup
 from firstrade import urls
 
@@ -9,7 +10,7 @@ class FTSession:
     """
     Class creating a session for Firstrade.
     """
-    def __init__(self, username, password, pin, persistent_session=False):
+    def __init__(self, username, password, pin, persistent_session=True):
         """
         Initializes a new instance of the FTSession class.
 
@@ -80,8 +81,10 @@ class FTSession:
             Dict: Dictionary of cookies. Nom Nom
         """
         try:
-            with open('cookies.pkl', 'rb') as f:
-                cookies = pickle.load(f)
+            for filename in os.listdir('.'):
+                if filename.endswith(f'{self.username}.pkl'):
+                    with open(filename, 'rb') as f:
+                        cookies = pickle.load(f)
         except FileNotFoundError:
             cookies = {}
         return cookies
@@ -90,7 +93,7 @@ class FTSession:
         """
         Saves session cookies to a file.
         """
-        with open('cookies.pkl', 'wb') as f:
+        with open(f'ft_cookies{self.username}.pkl', 'wb') as f:
             pickle.dump(self.session.cookies.get_dict(), f)
 
     def __getattr__(self, name):
