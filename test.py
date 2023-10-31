@@ -55,7 +55,7 @@ print(ft_order.order_confirmation)
 if ft_order.order_confirmation['success'] == 'Yes':
     print('Order placed successfully.')
     # Print Order ID
-    print(ft_order.order_confirmation['orderid'])
+    print(f"Order ID: {ft_order.order_confirmation['orderid']}.")
 else:
     print('Failed to place order.')
     # Print errormessage

@@ -80,13 +80,11 @@ class FTSession:
         Returns:
             Dict: Dictionary of cookies. Nom Nom
         """
-        try:
-            for filename in os.listdir('.'):
-                if filename.endswith(f'{self.username}.pkl'):
-                    with open(filename, 'rb') as f:
-                        cookies = pickle.load(f)
-        except FileNotFoundError:
-            cookies = {}
+        cookies = {}
+        for filename in os.listdir('.'):
+            if filename.endswith(f'{self.username}.pkl'):
+                with open(filename, 'rb') as f:
+                    cookies = pickle.load(f)
         return cookies
 
     def save_cookies(self):
