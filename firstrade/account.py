@@ -120,6 +120,7 @@ class FTAccountData:
         """
         self.session = session
         self.cookies = self.session.cookies
+        self.html_string = ''
         self.all_accounts = []
         self.account_numbers = []
         self.account_types = []
@@ -127,25 +128,31 @@ class FTAccountData:
         self.account_balances = []
         self.securities_held = {}
         all_account_info = []
-        html_string = self.session.get(
+        self.html_string = self.session.get(
             url=urls.account_list(),
             headers=urls.session_headers(),
             cookies=self.cookies
         ).text
         regex_accounts = re.findall(
-            r'<tr><th><a href=".*?">(.*?)</a></th><td>(.*?)</td></tr>', html_string
+            r'<tr><th><a href=".*?">(.*?)</a></th><td>(.*?)</td></tr>', self.html_string
         )
-        for match in regex_accounts:
-            start = match[0].split('-')[1]
-            type = start.split(' ')[0]
-            owner = start.split(' ')[1] + start.split(' ')[2]
-            account = match[0].split('-')[0]
-            balance = float(match[1].replace(',', ''))
-            self.account_types.append(type)
-            self.account_owners.append(owner)
-            self.account_numbers.append(account)
-            self.account_balances.append(balance)
-            all_account_info.append({account: {'Type': type, 'Owner': owner, 'Balance': balance}})
+        try:
+            for match in regex_accounts:
+                start = match[0].split('-')[1]
+                type = start.split(' ')[0]
+                owner = start.split(' ')[1] + start.split(' ')[2]
+                account = match[0].split('-')[0]
+                balance = float(match[1].replace(',', ''))
+                self.account_types.append(type)
+                self.account_owners.append(owner)
+                self.account_numbers.append(account)
+                self.account_balances.append(balance)
+                all_account_info.append({account: {'Type': type, 'Owner': owner, 'Balance': balance}})
+        except IndexError:
+            print(" HTML string regex did not match...")
+            with open('raw_html_string.txt', 'w') as f:
+                f.write(self.html_string)
+            print(" HTML string written to html_string.txt")
         self.all_accounts = all_account_info
 
     def get_positions(self, account):

@@ -1,3 +1,4 @@
+import sys
 from firstrade import account
 from firstrade import symbols
 from firstrade import order
@@ -7,7 +8,9 @@ ft_ss = account.FTSession(username='', password='', pin='')
 
 # Get account data
 ft_accounts = account.FTAccountData(ft_ss)
-
+if len(ft_accounts.account_owners) < 1:
+    print('No accounts found or an error occured exiting...')
+    sys.exit(1)
 # Print ALL account data
 print(ft_accounts.all_accounts)
 
@@ -45,7 +48,7 @@ ft_order.place_order(
     order_type=order.PriceType.MARKET,
     quantity=1,
     duration=order.Duration.DAY,
-    dry_run=False
+    dry_run=True
 )
 
 # Print Order data Dict
