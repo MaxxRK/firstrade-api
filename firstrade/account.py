@@ -2,7 +2,6 @@ import requests
 import pickle
 import re
 import os
-from time import sleep
 from bs4 import BeautifulSoup
 from firstrade import urls
 
@@ -26,7 +25,6 @@ class FTSession:
         self.pin = pin
         self.persistent_session = persistent_session
         self.session = requests.Session()
-        self.cookies = {}
         self.login()
 
     def login(self):
@@ -71,7 +69,6 @@ class FTSession:
             )
             if self.persistent_session:
                 self.save_cookies()
-        self.cookies = self.session.cookies
         if "/cgi-bin/sessionfailed?reason=6" in self.session.get(
             url=urls.get_xml(), headers=urls.session_headers(), cookies=cookies
         ).text:
@@ -123,7 +120,6 @@ class FTAccountData:
             session (requests.Session): The session object used for making HTTP requests.
         """
         self.session = session
-        self.cookies = self.session.cookies
         self.all_accounts = []
         self.account_numbers = []
         self.account_statuses = []
@@ -133,7 +129,7 @@ class FTAccountData:
         html_string = self.session.get(
             url=urls.account_list(),
             headers=urls.session_headers(),
-            cookies=self.cookies
+            cookies=self.session.cookies
         ).text
         regex_accounts = re.findall(
             r"([0-9]+)-", html_string
@@ -143,6 +139,10 @@ class FTAccountData:
             self.account_numbers.append(match)
         
         for account in self.account_numbers:
+            # reset cookies to base login cookies to run scripts
+            self.session.cookies.clear()
+            self.session.cookies.update(self.session.load_cookies())
+            # set account to get data for
             data = {'accountId': account}
             self.session.post(
                 url=urls.account_status(),
@@ -150,7 +150,15 @@ class FTAccountData:
                 cookies=self.session.cookies,
                 data=data
             )
-            sleep(1)
+            # request to get account status data
+            data = { 'req': 'get_status'}
+            account_status = self.session.post(
+                url=urls.status(),
+                headers=urls.session_headers(),
+                cookies=self.session.cookies,
+                data=data
+            ).json()
+            self.account_statuses.append(account_status['data'])
             data = {
                     'page': 'bal',
                     'account_id': account
@@ -163,15 +171,6 @@ class FTAccountData:
                 ).text, 'xml')
             balance = account_soup.find('total_account_value').text
             self.account_balances.append(balance)
-            data = { 'req': 'get_status'}
-            account_status = self.session.post(
-                url=urls.status(),
-                headers=urls.session_headers(),
-                cookies=self.session.cookies,
-                data=data
-            ).json()
-            self.account_statuses.append(account_status['data'])
-    
             all_account_info.append({account: 
                 {'Balance': balance, 'Status': 
                     {'primary':account_status['data']['primary'], 'domestic':account_status['data']['domestic'], 
@@ -200,7 +199,7 @@ class FTAccountData:
             url=urls.get_xml(),
             headers=urls.session_headers(),
             data=data,
-            cookies=self.cookies
+            cookies=self.session.cookies
         ).text, 'xml')
 
         tickers = position_soup.find_all('symbol')
