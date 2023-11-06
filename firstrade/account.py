@@ -124,20 +124,19 @@ class FTAccountData:
         """
         self.session = session
         self.cookies = self.session.cookies
-        self.html_string = ''
         self.all_accounts = []
         self.account_numbers = []
         self.account_statuses = []
         self.account_balances = []
         self.securities_held = {}
         all_account_info = []
-        self.html_string = self.session.get(
+        html_string = self.session.get(
             url=urls.account_list(),
             headers=urls.session_headers(),
             cookies=self.cookies
         ).text
         regex_accounts = re.findall(
-            r"([0-9]+)-", self.html_string
+            r"([0-9]+)-", html_string
         )
         
         for match in regex_accounts:
