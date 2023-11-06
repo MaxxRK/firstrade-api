@@ -73,9 +73,9 @@ class Order:
         else:
             previewOrders = ''
 
-        if order_type == PriceType.MARKET:
+        if price_type == PriceType.MARKET:
             price = ''
-
+        
         data = {
             'submiturl': '/cgi-bin/orderbar',
             'orderbar_clordid': '',
