@@ -144,6 +144,14 @@ class FTAccountData:
             self.account_numbers.append(match)
         
         for account in self.account_numbers:
+            data = {'accountId': account}
+            self.session.post(
+                url=urls.account_status(),
+                headers=urls.session_headers(),
+                cookies=self.session.cookies,
+                data=data
+            )
+            sleep(1)
             data = {
                     'page': 'bal',
                     'account_id': account
@@ -156,13 +164,6 @@ class FTAccountData:
                 ).text, 'xml')
             balance = account_soup.find('total_account_value').text
             self.account_balances.append(balance)
-            data = {'accountId': account}
-            self.session.post(
-                url=urls.account_status(),
-                headers=urls.session_headers(),
-                cookies=self.session.cookies,
-                data=data
-            )
             data = { 'req': 'get_status'}
             account_status = self.session.post(
                 url=urls.status(),
