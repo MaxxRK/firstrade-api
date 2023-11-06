@@ -47,8 +47,8 @@ class FTSession:
                 'redirect': '',
                 'ft_locale': 'en-us',
                 'login.x': 'Log In',
-                'username': self.username,
-                'password': self.password,
+                'username': r'' + self.username,
+                'password': r'' + self.password,
                 'destination_page': 'home'
             }
 

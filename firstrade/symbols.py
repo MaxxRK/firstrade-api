@@ -42,7 +42,11 @@ class SymbolQuote:
         self.ask = float(quote.find('ask').text)
         self.last = float(quote.find('last').text)
         self.change = float(quote.find('change').text)
-        self.high = float(quote.find('high').text)
-        self.low = float(quote.find('low').text)
+        if quote.find('high').text == 'N/A':
+            self.high = None
+        else:
+            self.high = float(quote.find('high').text)
+        if quote.find('low').text == 'N/A':
+            self.low = None
         self.volume = quote.find('vol').text
         self.company_name = quote.find('companyname').text
