@@ -33,6 +33,8 @@ ft_ss = account.FTSession(username='', password='', pin='')
 
 # Get account data
 ft_accounts = account.FTAccountData(ft_ss)
+if len(ft_accounts.account_numbers) < 1:
+    raise Exception('No accounts found or an error occured exiting...')
 
 # Print ALL account data
 print(ft_accounts.all_accounts)
@@ -71,7 +73,7 @@ ft_order.place_order(
     order_type=order.PriceType.MARKET,
     quantity=1,
     duration=order.Duration.DAY,
-    dry_run=False
+    dry_run=True
 )
 
 # Print Order data Dict
@@ -81,7 +83,7 @@ print(ft_order.order_confirmation)
 if ft_order.order_confirmation['success'] == 'Yes':
     print('Order placed successfully.')
     # Print Order ID
-    print(ft_order.order_confirmation['orderid'])
+    print(f"Order ID: {ft_order.order_confirmation['orderid']}.")
 else:
     print('Failed to place order.')
     # Print errormessage

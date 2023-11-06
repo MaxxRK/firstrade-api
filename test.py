@@ -1,4 +1,3 @@
-import sys
 from firstrade import account
 from firstrade import symbols
 from firstrade import order
