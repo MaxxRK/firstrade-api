@@ -27,6 +27,16 @@ class Duration(str, Enum):
     DAY_EXT = 'D'
 
 
+class OrderType(str, Enum):
+    """
+    This is an :class:'~enum.Enum' that contains the valid order types for an order.
+    """
+    BUY = 'B'
+    SELL = 'S'
+    SELL_SHORT = 'SS'
+    BUY_TO_COVER = 'BC'
+
+
 class Order:
     """
     This class contains information about an order. It also contains a method to place an order.
@@ -36,7 +46,7 @@ class Order:
         self.order_confirmation = {}
 
     def place_order(
-        self, account, symbol, order_type: PriceType,
+        self, account, symbol, price_type: PriceType, order_type: OrderType,
         quantity, duration: Duration, price=0.00, dry_run=True
     ):
 
@@ -79,10 +89,10 @@ class Order:
             'viewederror': '',
             'stocksubmittedcompanyname1': '',
             'accountId': account,
-            'transactionType': 'B',
+            'transactionType': order_type,
             'quantity': quantity,
             'symbol': symbol,
-            'priceType': order_type,
+            'priceType': price_type,
             'limitPrice': price,
             'duration': duration,
             'qualifier': '0',
