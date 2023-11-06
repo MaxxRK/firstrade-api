@@ -2,6 +2,7 @@ import requests
 import pickle
 import re
 import os
+from time import sleep
 from bs4 import BeautifulSoup
 from firstrade import urls
 
@@ -162,6 +163,7 @@ class FTAccountData:
                 ).text, 'xml')
             balance = account_soup.find('total_account_value').text
             self.account_balances.append(balance)
+            sleep(2)
             data = { 'req': 'get_status'}
             account_status = self.session.post(
                 url=urls.status(),

@@ -70,7 +70,8 @@ ft_order = order.Order(ft_ss)
 ft_order.place_order(
     ft_accounts.account_numbers[0],
     symbol='INTC',
-    order_type=order.PriceType.MARKET,
+    price_type=order.PriceType.MARKET,
+    order_type=order.OrderType.BUY,
     quantity=1,
     duration=order.Duration.DAY,
     dry_run=True

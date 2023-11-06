@@ -47,6 +47,8 @@ class SymbolQuote:
         else:
             self.high = float(quote.find('high').text)
         if quote.find('low').text == 'N/A':
-            self.low = None
+            self.low = 'None'
+        else:
+            self.low = float(quote.find('low').text)
         self.volume = quote.find('vol').text
         self.company_name = quote.find('companyname').text
