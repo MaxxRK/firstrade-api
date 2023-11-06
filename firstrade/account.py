@@ -36,9 +36,12 @@ class FTSession:
         cookies = self.load_cookies()
         cookies = requests.utils.cookiejar_from_dict(cookies)
         self.session.cookies.update(cookies)
-        if "/cgi-bin/sessionfailed?reason=6" in self.session.get(
+        response = self.session.get(
             url=urls.get_xml(), headers=urls.session_headers(), cookies=cookies
-        ).text:
+        )
+        if response.status_code != 200:
+            raise Exception('Login failed. Check your credentials or internet connection.')
+        if "/cgi-bin/sessionfailed?reason=6" in response.text:
             self.session.get(url=urls.login(), headers=headers)
             data = {
                 'redirect': '',
@@ -123,8 +126,7 @@ class FTAccountData:
         self.html_string = ''
         self.all_accounts = []
         self.account_numbers = []
-        self.account_types = []
-        self.account_owners = []
+        self.account_statuses = []
         self.account_balances = []
         self.securities_held = {}
         all_account_info = []
@@ -134,25 +136,50 @@ class FTAccountData:
             cookies=self.cookies
         ).text
         regex_accounts = re.findall(
-            r'<tr><th><a href=".*?">(.*?)</a></th><td>(.*?)</td></tr>', self.html_string
+            r"([0-9]+)-", self.html_string
         )
-        try:
-            for match in regex_accounts:
-                start = match[0].split('-')[1]
-                type = start.split(' ')[0]
-                owner = start.split(' ')[1] + start.split(' ')[2]
-                account = match[0].split('-')[0]
-                balance = float(match[1].replace(',', ''))
-                self.account_types.append(type)
-                self.account_owners.append(owner)
-                self.account_numbers.append(account)
-                self.account_balances.append(balance)
-                all_account_info.append({account: {'Type': type, 'Owner': owner, 'Balance': balance}})
-        except IndexError:
-            print(" HTML string regex did not match...")
-            with open('raw_html_string.txt', 'w') as f:
-                f.write(self.html_string)
-            print(" HTML string written to html_string.txt")
+        
+        for match in regex_accounts:
+            self.account_numbers.append(match)
+        
+        for account in self.account_numbers:
+            data = {'accountId': account}
+            self.session.post(
+                url=urls.account_status(),
+                headers=urls.session_headers(),
+                cookies=self.session.cookies,
+                data=data
+            )
+            data = {
+                    'page': 'bal',
+                    'account_id': account
+                }
+            account_soup = BeautifulSoup(self.session.post(
+                url=urls.get_xml(), 
+                headers=urls.session_headers(), 
+                cookies=self.session.cookies,
+                data=data,
+                ).text, 'xml')
+            balance = account_soup.find('total_account_value').text
+            self.account_balances.append(balance)
+            data = { 'req': 'get_status'}
+            account_status = self.session.post(
+                url=urls.status(),
+                headers=urls.session_headers(),
+                cookies=self.session.cookies,
+                data=data
+            ).json()
+            self.account_statuses.append(account_status['data'])
+    
+            all_account_info.append({account: 
+                {'Balance': balance, 'Status': 
+                    {'primary':account_status['data']['primary'], 'domestic':account_status['data']['domestic'], 
+                     'joint':account_status['data']['joint'], 'ira':account_status['data']['ira'],
+                     'hasMargin':account_status['data']['hasMargin'], 'opLevel':account_status['data']['opLevel'], 'p_country':account_status['data']['p_country'],
+                     'mrgnStatus':account_status['data']['mrgnStatus'], 'opStatus':account_status['data']['opStatus'], 'margin_id':account_status['data']['margin_id']
+                    }
+                 }})
+            
         self.all_accounts = all_account_info
 
     def get_positions(self, account):

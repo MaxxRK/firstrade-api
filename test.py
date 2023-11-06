@@ -8,9 +8,9 @@ ft_ss = account.FTSession(username='', password='', pin='')
 
 # Get account data
 ft_accounts = account.FTAccountData(ft_ss)
-if len(ft_accounts.account_owners) < 1:
-    print('No accounts found or an error occured exiting...')
-    sys.exit(1)
+if len(ft_accounts.account_numbers) < 1:
+    raise Exception('No accounts found or an error occured exiting...')
+
 # Print ALL account data
 print(ft_accounts.all_accounts)
 
