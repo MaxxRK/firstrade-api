@@ -120,7 +120,8 @@ class FTAccountData:
         Initializes a new instance of the FTAccountData class.
 
         Args:
-            session (requests.Session): The session object used for making HTTP requests.
+            session (requests.Session):
+            The session object used for making HTTP requests.
         """
         self.session = session
         self.all_accounts = []
@@ -201,7 +202,8 @@ class FTAccountData:
             account (str): Account number of the account you want to get positions for.
 
         Returns:
-            self.securities_held {dict}: Dict of held positions with the pos. ticker as the key.
+            self.securities_held {dict}:
+            Dict of held positions with the pos. ticker as the key.
         """
         data = {
             "page": "pos",

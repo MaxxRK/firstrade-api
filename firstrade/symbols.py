@@ -9,7 +9,8 @@ class SymbolQuote:
     Dataclass containing quote information for a symbol.
 
     Attributes:
-        ft_session (FTSession): The session object used for making HTTP requests to Firstrade.
+        ft_session (FTSession):
+            The session object used for making HTTP requests to Firstrade.
         symbol (str): The symbol for which the quote information is retrieved.
         exchange (str): The exchange where the symbol is traded.
         bid (float): The bid price for the symbol.
@@ -27,7 +28,8 @@ class SymbolQuote:
         Initializes a new instance of the SymbolQuote class.
 
         Args:
-            ft_session (FTSession): The session object used for making HTTP requests to Firstrade.
+            ft_session (FTSession):
+                The session object used for making HTTP requests to Firstrade.
             symbol (str): The symbol for which the quote information is retrieved.
         """
         self.ft_session = ft_session
