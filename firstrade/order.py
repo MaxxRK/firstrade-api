@@ -7,7 +7,9 @@ from firstrade import urls
 
 
 class PriceType(str, Enum):
-    """This is an :class: 'enum.Enum' that contains the valid price types for an order."""
+    """
+    This is an :class: 'enum.Enum' that contains the valid price types for an order.
+    """
 
     LIMIT = "2"
     MARKET = "1"
