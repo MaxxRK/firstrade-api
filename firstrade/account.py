@@ -19,7 +19,7 @@ class FTSession:
             username (str): Firstrade login username.
             password (str): Firstrade login password.
             pin (str): Firstrade login pin.
-            persistent_session (bool, optional): 
+            persistent_session (bool, optional):
             Whether the user wants to save the session cookies.
         """
         self.username = username

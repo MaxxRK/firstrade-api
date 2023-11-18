@@ -31,7 +31,7 @@ class Duration(str, Enum):
 
 class OrderType(str, Enum):
     """
-    This is an :class:'~enum.Enum' 
+    This is an :class:'~enum.Enum'
     that contains the valid order types for an order.
     """
 
@@ -43,7 +43,7 @@ class OrderType(str, Enum):
 
 class Order:
     """
-    This class contains information about an order. 
+    This class contains information about an order.
     It also contains a method to place an order.
     """
 
@@ -64,7 +64,7 @@ class Order:
     ):
         """
         Builds and places an order.
-        :attr: 'order_confirmation` 
+        :attr: 'order_confirmation`
         contains the order confirmation data after order placement.
 
         Args:
