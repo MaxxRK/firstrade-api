@@ -7,9 +7,7 @@ from firstrade import urls
 
 
 class PriceType(str, Enum):
-    """
-    This is an :class: 'enum.Enum' that contains the valid price types for an order.
-    """
+    " This is an :class: 'enum.Enum' that contains the valid price types for an order."
 
     LIMIT = "2"
     MARKET = "1"
@@ -20,9 +18,7 @@ class PriceType(str, Enum):
 
 
 class Duration(str, Enum):
-    """
-    This is an :class:'~enum.Enum' that contains the valid durations for an order.
-    """
+    " This is an :class:'~enum.Enum' that contains the valid durations for an order."
 
     DAY = "0"
     GT90 = "1"
@@ -32,9 +28,7 @@ class Duration(str, Enum):
 
 
 class OrderType(str, Enum):
-    """
-    This is an :class:'~enum.Enum' that contains the valid order types for an order.
-    """
+    "This is an :class:'~enum.Enum' that contains the valid order types for an order."
 
     BUY = "B"
     SELL = "S"
@@ -43,9 +37,7 @@ class OrderType(str, Enum):
 
 
 class Order:
-    """
-    This class contains information about an order. It also contains a method to place an order.
-    """
+    "This class contains information about an order. It also contains a method to place an order."
 
     def __init__(self, ft_session: FTSession):
         self.ft_session = ft_session
