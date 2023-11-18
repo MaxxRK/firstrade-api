@@ -9,7 +9,7 @@ from firstrade import urls
 
 
 class FTSession:
-    "Class creating a session for Firstrade."
+    """Class creating a session for Firstrade."""
 
     def __init__(self, username, password, pin, persistent_session=True):
         """
@@ -29,7 +29,7 @@ class FTSession:
         self.login()
 
     def login(self):
-        "Method to validate and login to the Firstrade platform."
+        """Method to validate and login to the Firstrade platform."""
         headers = urls.session_headers()
         cookies = self.load_cookies()
         cookies = requests.utils.cookiejar_from_dict(cookies)
@@ -94,7 +94,7 @@ class FTSession:
         return cookies
 
     def save_cookies(self):
-        "Saves session cookies to a file."
+        """Saves session cookies to a file."""
         with open(f"ft_cookies{self.username}.pkl", "wb") as f:
             pickle.dump(self.session.cookies.get_dict(), f)
 
@@ -112,7 +112,7 @@ class FTSession:
 
 
 class FTAccountData:
-    "Dataclass for storing account information."
+    """Dataclass for storing account information."""
 
     def __init__(self, session):
         """
