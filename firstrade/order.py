@@ -30,7 +30,10 @@ class Duration(str, Enum):
 
 
 class OrderType(str, Enum):
-    """This is an :class:'~enum.Enum' that contains the valid order types for an order."""
+    """
+    This is an :class:'~enum.Enum' 
+    that contains the valid order types for an order.
+    """
 
     BUY = "B"
     SELL = "S"
@@ -39,7 +42,10 @@ class OrderType(str, Enum):
 
 
 class Order:
-    """This class contains information about an order. It also contains a method to place an order."""
+    """
+    This class contains information about an order. 
+    It also contains a method to place an order.
+    """
 
     def __init__(self, ft_session: FTSession):
         self.ft_session = ft_session
@@ -58,7 +64,8 @@ class Order:
     ):
         """
         Builds and places an order.
-        :attr: 'order_confirmation` contains the order confirmation data after order placement.
+        :attr: 'order_confirmation` 
+        contains the order confirmation data after order placement.
 
         Args:
             account (str): Account number of the account to place the order in.
