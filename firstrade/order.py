@@ -7,7 +7,7 @@ from firstrade import urls
 
 
 class PriceType(str, Enum):
-    " This is an :class: 'enum.Enum' that contains the valid price types for an order."
+    "This is an :class: 'enum.Enum' that contains the valid price types for an order."
 
     LIMIT = "2"
     MARKET = "1"
@@ -18,7 +18,7 @@ class PriceType(str, Enum):
 
 
 class Duration(str, Enum):
-    " This is an :class:'~enum.Enum' that contains the valid durations for an order."
+    "This is an :class:'~enum.Enum' that contains the valid durations for an order."
 
     DAY = "0"
     GT90 = "1"
