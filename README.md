@@ -102,9 +102,9 @@ This code is also in test.py
  - [x] Get Currently Held Positions
 
 ## TO DO
-- [ ] Check on placed order status.
-- [ ] Cancel placed orders
-- [ ] Options
-- [ ] Give me some Ideas!
+ - [ ] Check on placed order status.
+ - [ ] Cancel placed orders
+ - [ ] Options
+ - [ ] Give me some Ideas!
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/O5O6PTOYG)  
