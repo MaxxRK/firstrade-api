@@ -6,9 +6,8 @@ from firstrade import urls
 from bs4 import BeautifulSoup
 
 
-
-
 class PriceType(str, Enum):
+
     """
     This is an :class: 'enum.Enum'
     that contains the valid price types for an order.
@@ -23,6 +22,7 @@ class PriceType(str, Enum):
 
 
 class Duration(str, Enum):
+
     """
     This is an :class:'~enum.Enum'
     that contains the valid durations for an order.
@@ -36,6 +36,7 @@ class Duration(str, Enum):
 
 
 class OrderType(str, Enum):
+
     """
     This is an :class:'~enum.Enum'
     that contains the valid order types for an order.
@@ -48,6 +49,7 @@ class OrderType(str, Enum):
 
 
 class Order:
+
     """
     This class contains information about an order.
     It also contains a method to place an order.
