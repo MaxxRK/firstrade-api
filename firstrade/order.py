@@ -1,6 +1,6 @@
 from enum import Enum
 
-from account import FTSession
+from firstrade.account import FTSession
 from bs4 import BeautifulSoup
 
 from firstrade import urls

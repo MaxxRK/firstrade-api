@@ -11,7 +11,7 @@ from firstrade import urls
 class FTSession:
     """Class creating a session for Firstrade."""
 
-    def __init__(self, username, password, pin, persistent_session=True):
+    def __init__(self, username, password, pin, profile_path=None):
         """
         Initializes a new instance of the FTSession class.
 
@@ -19,13 +19,13 @@ class FTSession:
             username (str): Firstrade login username.
             password (str): Firstrade login password.
             pin (str): Firstrade login pin.
-            persistent_session (bool, optional):
-            Whether the user wants to save the session cookies.
+            persistent_session (bool, optional): Whether the user wants to save the session cookies.
+            profile_path (str, optional): The path where the user wants to save the cookie pkl file.
         """
         self.username = username
         self.password = password
         self.pin = pin
-        self.persistent_session = persistent_session
+        self.profile_path = profile_path
         self.session = requests.Session()
         self.login()
 
@@ -70,7 +70,7 @@ class FTSession:
             self.session.post(
                 url=urls.pin(), headers=headers, cookies=self.session.cookies, data=data
             )
-            if self.persistent_session:
+            if self.profile_path is not None:
                 self.save_cookies()
         if (
             "/cgi-bin/sessionfailed?reason=6"
@@ -88,15 +88,27 @@ class FTSession:
             Dict: Dictionary of cookies. Nom Nom
         """
         cookies = {}
-        for filename in os.listdir("."):
-            if filename.endswith(f"{self.username}.pkl"):
-                with open(filename, "rb") as f:
-                    cookies = pickle.load(f)
+        if self.profile_path is not None:
+            directory = os.path.abspath(self.profile_path)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            for filename in os.listdir(directory):
+                if filename.endswith(f"{self.username}.pkl"):
+                    filepath = os.path.join(directory, filename)
+                    with open(filepath, "rb") as f:
+                        cookies = pickle.load(f)
         return cookies
 
     def save_cookies(self):
         """Saves session cookies to a file."""
-        with open(f"ft_cookies{self.username}.pkl", "wb") as f:
+        if self.profile_path is not None:
+            directory = os.path.abspath(self.profile_path)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            path = os.path.join(self.profile_path, f"ft_cookies{self.username}.pkl")
+        else:
+            path = f"ft_cookies{self.username}.pkl"
+        with open(path, "wb") as f:
             pickle.dump(self.session.cookies.get_dict(), f)
 
     def __getattr__(self, name):
