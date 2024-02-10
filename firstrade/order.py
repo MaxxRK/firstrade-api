@@ -1,11 +1,9 @@
 from enum import Enum
 
-from firstrade.account import FTSession
-from firstrade import urls
-
 from bs4 import BeautifulSoup
 
-
+from firstrade import urls
+from firstrade.account import FTSession
 
 
 class PriceType(str, Enum):
@@ -52,6 +50,7 @@ class Order:
     This class contains information about an order.
     It also contains a method to place an order.
     """
+
     def __init__(self, ft_session: FTSession):
         self.ft_session = ft_session
         self.order_confirmation = {}
