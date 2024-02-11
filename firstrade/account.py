@@ -70,8 +70,7 @@ class FTSession:
             self.session.post(
                 url=urls.pin(), headers=headers, cookies=self.session.cookies, data=data
             )
-            if self.profile_path is not None:
-                self.save_cookies()
+            self.save_cookies()
         if (
             "/cgi-bin/sessionfailed?reason=6"
             in self.session.get(
@@ -110,6 +109,14 @@ class FTSession:
             path = f"ft_cookies{self.username}.pkl"
         with open(path, "wb") as f:
             pickle.dump(self.session.cookies.get_dict(), f)
+    
+    def delete_cookeis(self):    
+        """Deletes the session cookies."""
+        if self.profile_path is not None:
+            path = os.path.join(self.profile_path, f"ft_cookies{self.username}.pkl")
+        else:
+            path = f"ft_cookies{self.username}.pkl"
+        os.remove(path)
 
     def __getattr__(self, name):
         """
