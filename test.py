@@ -63,3 +63,5 @@ else:
     print("Failed to place order.")
     # Print errormessage
     print(ft_order.order_confirmation["actiondata"])
+# Delete cookies
+ft_ss.delete_cookies()

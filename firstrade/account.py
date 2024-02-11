@@ -87,15 +87,16 @@ class FTSession:
             Dict: Dictionary of cookies. Nom Nom
         """
         cookies = {}
-        if self.profile_path is not None:
-            directory = os.path.abspath(self.profile_path)
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            for filename in os.listdir(directory):
-                if filename.endswith(f"{self.username}.pkl"):
-                    filepath = os.path.join(directory, filename)
-                    with open(filepath, "rb") as f:
-                        cookies = pickle.load(f)
+        directory = os.path.abspath(self.profile_path) if self.profile_path is not None else "."
+        
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        for filename in os.listdir(directory):
+            if filename.endswith(f"{self.username}.pkl"):
+                filepath = os.path.join(directory, filename)
+                with open(filepath, "rb") as f:
+                    cookies = pickle.load(f)
         return cookies
 
     def save_cookies(self):
@@ -110,7 +111,7 @@ class FTSession:
         with open(path, "wb") as f:
             pickle.dump(self.session.cookies.get_dict(), f)
     
-    def delete_cookeis(self):    
+    def delete_cookies(self):    
         """Deletes the session cookies."""
         if self.profile_path is not None:
             path = os.path.join(self.profile_path, f"ft_cookies{self.username}.pkl")
