@@ -1,24 +1,30 @@
 # firstrade-api
- A reverse-engineered python API to interact with the Firstrade Trading platform.
 
- This is not an official api! This api's functionality may change at any time.
+A reverse-engineered python API to interact with the Firstrade Trading platform.
 
- This api provides a means of buying and selling stocks through Firstrade. It uses the Session class from requests to get authorization cookies. The rest is done with reverse engineered requests to Firstrade's API. 
+This is not an official api! This api's functionality may change at any time.
 
- ---
+This api provides a means of buying and selling stocks through Firstrade. It uses the Session class from requests to get authorization cookies. The rest is done with reverse engineered requests to Firstrade's API.
+
+---
 
 ## Contribution
+
 I am new to coding and new to open-source. I would love any help and suggestions!
 
 ## Setup
+
 Install using pypi:
+
 ```
 pip install firstrade
 ```
 
 ## Quikstart
-The code below will: 
-- Login and print account info. 
+
+The code below will:
+
+- Login and print account info.
 - Get a quote for 'INTC' and print out the information
 - Place a market order for 'INTC' on the first account in the `account_numbers` list
 - Print out the order confirmation
@@ -72,9 +78,10 @@ ft_order.place_order(
     symbol="INTC",
     price_type=order.PriceType.MARKET,
     order_type=order.OrderType.BUY,
-    quantity=1,
+    quantity=1, # should be amount of dollar when doing fractional trading
     duration=order.Duration.DAY,
     dry_run=True,
+    notional=False, # set to True if doing fractional trading
 )
 
 # Print Order data Dict
@@ -92,21 +99,24 @@ else:
 # Delete cookies
 ft_ss.delete_cookies()
 ```
+
 This code is also in test.py
 
 ---
 
- ## Implemented Features
- - [x] Login
- - [x] Get Quotes
- - [x] Get Account Data
- - [x] Place Orders and Receive order confirmation
- - [x] Get Currently Held Positions
+## Implemented Features
+
+- [x] Login
+- [x] Get Quotes
+- [x] Get Account Data
+- [x] Place Orders and Receive order confirmation
+- [x] Get Currently Held Positions
 
 ## TO DO
- - [ ] Check on placed order status.
- - [ ] Cancel placed orders
- - [ ] Options
- - [ ] Give me some Ideas!
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/O5O6PTOYG)  
+- [ ] Check on placed order status.
+- [ ] Cancel placed orders
+- [ ] Options
+- [ ] Give me some Ideas!
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/O5O6PTOYG)
