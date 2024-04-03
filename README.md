@@ -78,7 +78,7 @@ ft_order.place_order(
     symbol="INTC",
     price_type=order.PriceType.MARKET,
     order_type=order.OrderType.BUY,
-    quantity=1, trading
+    quantity=1, # number of shares or amount of dollar, depnds on the value of notional
     duration=order.Duration.DAY,
     dry_run=True,
     notional=False, # set to True if quantity above is "dollar"
