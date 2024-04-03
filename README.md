@@ -78,10 +78,10 @@ ft_order.place_order(
     symbol="INTC",
     price_type=order.PriceType.MARKET,
     order_type=order.OrderType.BUY,
-    quantity=1, # should be amount of dollar when doing fractional trading
+    quantity=1, trading
     duration=order.Duration.DAY,
     dry_run=True,
-    notional=False, # set to True if doing fractional trading
+    notional=False, # set to True if quantity above is "dollar"
 )
 
 # Print Order data Dict
