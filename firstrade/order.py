@@ -68,6 +68,7 @@ class Order:
         duration: Duration,
         price=0.00,
         dry_run=True,
+        notional=False,
     ):
         """
         Builds and places an order.
@@ -100,6 +101,7 @@ class Order:
             "submiturl": "/cgi-bin/orderbar",
             "orderbar_clordid": "",
             "orderbar_accountid": "",
+            "notional": "yes" if notional else "",
             "stockorderpage": "yes",
             "submitOrders": "1",
             "previewOrders": previewOrders,
