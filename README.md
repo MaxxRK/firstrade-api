@@ -6,6 +6,8 @@ This is not an official api! This api's functionality may change at any time.
 
 This api provides a means of buying and selling stocks through Firstrade. It uses the Session class from requests to get authorization cookies. The rest is done with reverse engineered requests to Firstrade's API.
 
+In order to use Fractional shares you must accept the agreement on the website before using it in this API.
+
 ---
 
 ## Contribution
@@ -78,7 +80,7 @@ ft_order.place_order(
     symbol="INTC",
     price_type=order.PriceType.MARKET,
     order_type=order.OrderType.BUY,
-    quantity=1, # number of shares or amount of dollar, depnds on the value of notional
+    quantity=1, # number of shares or amount of dollar, depends on the value of notional
     duration=order.Duration.DAY,
     dry_run=True,
     notional=False, # set to True if quantity above is "dollar"
