@@ -113,6 +113,7 @@ This code is also in test.py
 - [x] Get Account Data
 - [x] Place Orders and Receive order confirmation
 - [x] Get Currently Held Positions
+- [x] Fractional Trading support (thanks to @jiak94)
 
 ## TO DO
 
