@@ -21,6 +21,8 @@ class SymbolQuote:
         low (float): The lowest price for the symbol during the trading day.
         volume (str): The volume of shares traded for the symbol.
         company_name (str): The name of the company associated with the symbol.
+        real_time (bool): 
+        fractional (bool):  If the stock can be traded fractionally, or not
     """
 
     def __init__(self, ft_session: FTSession, symbol: str):
@@ -55,3 +57,5 @@ class SymbolQuote:
             self.low = float(quote.find("low").text)
         self.volume = quote.find("vol").text
         self.company_name = quote.find("companyname").text
+        self.real_time = quote.find("realtime").text == "T"
+        self.fractional_tradability = quote.find("fractional").text == "T"
