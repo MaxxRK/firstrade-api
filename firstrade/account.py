@@ -11,7 +11,7 @@ from firstrade import urls
 class FTSession:
     """Class creating a session for Firstrade."""
 
-    def __init__(self, username, password, pin, profile_path=None):
+    def __init__(self, username, password, pin, persistent_session=False, profile_path=None):
         """
         Initializes a new instance of the FTSession class.
 
@@ -28,6 +28,9 @@ class FTSession:
         self.profile_path = profile_path
         self.session = requests.Session()
         self.login()
+        self.persistent_session = persistent_session
+        if self.persistent_session:
+            self.save_cookies()
 
     def login(self):
         """Method to validate and login to the Firstrade platform."""
@@ -245,6 +248,8 @@ class FTAccountData:
         change = position_soup.find_all("change")
         change_percent = position_soup.find_all("changepercent")
         vol = position_soup.find_all("vol")
+        # date_aquired = position_soup.find_all("")
+
         for i, ticker in enumerate(tickers):
             ticker = ticker.text
             self.securities_held[ticker] = {
