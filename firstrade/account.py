@@ -248,8 +248,6 @@ class FTAccountData:
         change = position_soup.find_all("change")
         change_percent = position_soup.find_all("changepercent")
         vol = position_soup.find_all("vol")
-        # date_aquired = position_soup.find_all("")
-
         for i, ticker in enumerate(tickers):
             ticker = ticker.text
             self.securities_held[ticker] = {

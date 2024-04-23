@@ -40,7 +40,6 @@ class SymbolQuote:
             url=urls.quote(self.symbol), headers=urls.session_headers()
         )
         soup = BeautifulSoup(symbol_data.text, "xml")
-        print(soup)
         quote = soup.find("quote")
         self.symbol = quote.find("symbol").text
         self.exchange = quote.find("exchange").text
