@@ -22,6 +22,10 @@ def orderbar():
     return "https://invest.firstrade.com/cgi-bin/orderbar"
 
 
+def orderlist():
+    return "https://invest.firstrade.com/cgi-bin/orderstatus"
+
+
 def account_status():
     return "https://invest.firstrade.com/cgi-bin/account_status"
 
