@@ -161,3 +161,67 @@ class Order:
             order_confirmation["actiondata"] = action_data
         order_confirmation["errcode"] = order_data.find("errcode").text.strip()
         self.order_confirmation = order_confirmation
+
+
+def get_orders(ft_session, account):
+    """
+    Retrieves existing order data for a given account.
+
+    Args:
+        ft_session (FTSession): The session object used for making HTTP requests to Firstrade.
+        account (str): Account number of the account to retrieve orders for.
+
+    Returns:
+        list: A list of dictionaries, each containing details about an order.
+    """
+
+    # Data dictionary to send with the request
+    data = {
+        'accountId': account,
+    }
+
+    # Post request to retrieve the order data
+    response = ft_session.post(url=urls.orderlist(), headers=urls.session_headers(), data=data).text
+
+    # Parse the response using BeautifulSoup
+    soup = BeautifulSoup(response, "html.parser")
+
+    # Find the table containing orders
+    table = soup.find('table', class_='tablesorter')
+    if not table:
+        return []
+
+    rows = table.find_all('tr')[1:]  # skip the header row
+
+    orders = []
+    for row in rows:
+        try:
+            cells = row.find_all('td')
+            tooltip_content = row.find('a', {'class': 'info'}).get('onmouseover')
+            tooltip_soup = BeautifulSoup(tooltip_content.split('tooltip.show(')[1].strip("');"), 'html.parser')
+            order_ref = tooltip_soup.find(text=lambda text: 'Order Ref' in text)
+            order_ref_number = order_ref.split('#: ')[1] if order_ref else None
+            status = cells[8]
+            # print(status)
+            sub_status = status.find('strong')
+            # print(sub_status)
+            sub_status = sub_status.get_text(strip=True)
+            # print(sub_status)
+            status = status.find('strong').get_text(strip=True) if status.find('strong') else status.get_text(strip=True)
+            order = {
+                'Date/Time': cells[0].get_text(strip=True),
+                'Reference': order_ref_number,
+                'Transaction': cells[1].get_text(strip=True),
+                'Quantity': int(cells[2].get_text(strip=True)),
+                'Symbol': cells[3].get_text(strip=True),
+                'Type': cells[4].get_text(strip=True),
+                'Price': float(cells[5].get_text(strip=True)),
+                'Duration': cells[6].get_text(strip=True),
+                'Instr.': cells[7].get_text(strip=True),
+                'Status': status,
+            }
+            orders.append(order)
+        except Exception as e:
+            print(f"Error parsing order: {e}")
+
+    return orders
