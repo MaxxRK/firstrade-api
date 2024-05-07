@@ -21,6 +21,8 @@ class SymbolQuote:
         low (float): The lowest price for the symbol during the trading day.
         volume (str): The volume of shares traded for the symbol.
         company_name (str): The name of the company associated with the symbol.
+        real_time (bool): If the quote is real-time or not
+        fractional (bool):  If the stock can be traded fractionally, or not
     """
 
     def __init__(self, ft_session: FTSession, symbol: str):
@@ -41,17 +43,19 @@ class SymbolQuote:
         quote = soup.find("quote")
         self.symbol = quote.find("symbol").text
         self.exchange = quote.find("exchange").text
-        self.bid = float(quote.find("bid").text)
-        self.ask = float(quote.find("ask").text)
-        self.last = float(quote.find("last").text)
-        self.change = float(quote.find("change").text)
+        self.bid = float(quote.find("bid").text.replace(",", ""))
+        self.ask = float(quote.find("ask").text.replace(",", ""))
+        self.last = float(quote.find("last").text.replace(",", ""))
+        self.change = float(quote.find("change").text.replace(",", ""))
         if quote.find("high").text == "N/A":
             self.high = None
         else:
-            self.high = float(quote.find("high").text)
+            self.high = float(quote.find("high").text.replace(",", ""))
         if quote.find("low").text == "N/A":
             self.low = "None"
         else:
-            self.low = float(quote.find("low").text)
+            self.low = float(quote.find("low").text.replace(",", ""))
         self.volume = quote.find("vol").text
         self.company_name = quote.find("companyname").text
+        self.real_time = quote.find("realtime").text == "T"
+        self.fractional = quote.find("fractional").text == "T"
