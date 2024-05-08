@@ -24,16 +24,15 @@ pip install firstrade
 
 ## Quikstart
 
-The code below will:
+`Checkout test.py for sample code.`
 
+This code will:
 - Login and print account info.
 - Get a quote for 'INTC' and print out the information
 - Place a market order for 'INTC' on the first account in the `account_numbers` list
 - Print out the order confirmation
 
 `Checkout test.py for sample code.`
-
-This code is also in test.py
 
 ---
 
