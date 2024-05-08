@@ -1,4 +1,5 @@
 from firstrade import account, order, symbols
+from firstrade.order import get_orders
 
 # Create a session
 ft_ss = account.FTSession(username="", password="", pin="")
@@ -63,5 +64,10 @@ else:
     print("Failed to place order.")
     # Print errormessage
     print(ft_order.order_confirmation["actiondata"])
+
+# Check orders
+current_orders = get_orders(ft_ss, ft_accounts.account_numbers[0])
+print(current_orders)
+
 # Delete cookies
 ft_ss.delete_cookies()

@@ -25,6 +25,9 @@ def orderbar():
 def account_status():
     return "https://invest.firstrade.com/cgi-bin/account_status"
 
+def order_list():
+    return "https://invest.firstrade.com/cgi-bin/orderstatus"
+
 
 def status():
     return "https://invest.firstrade.com/scripts/profile/margin_v2.php"

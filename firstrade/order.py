@@ -181,7 +181,7 @@ def get_orders(ft_session, account):
     }
 
     # Post request to retrieve the order data
-    response = ft_session.post(url=urls.orderlist(), headers=urls.session_headers(), data=data).text
+    response = ft_session.post(url=urls.order_list(), headers=urls.session_headers(), data=data).text
 
     # Parse the response using BeautifulSoup
     soup = BeautifulSoup(response, "html.parser")
