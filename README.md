@@ -52,4 +52,5 @@ This code will:
 - [ ] Options
 - [ ] Give me some Ideas!
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/O5O6PTOYG)
+## If you would like to support me, you can do so here:
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/maxxrk?style=social)](https://github.com/sponsors/maxxrk) 
