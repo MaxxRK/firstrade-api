@@ -42,10 +42,18 @@ class SymbolQuote:
         soup = BeautifulSoup(symbol_data.text, "xml")
         quote = soup.find("quote")
         self.symbol = quote.find("symbol").text
+        self.underlying_symbol = quote.find("underlying_symbol").text
+        self.tick = quote.find("tick").text
         self.exchange = quote.find("exchange").text
         self.bid = float(quote.find("bid").text.replace(",", ""))
         self.ask = float(quote.find("ask").text.replace(",", ""))
         self.last = float(quote.find("last").text.replace(",", ""))
+        self.bid_size = int(quote.find("bidsize").text.replace(",", ""))
+        self.ask_size = int(quote.find("asksize").text.replace(",", ""))
+        self.last_size = int(quote.find("lastsize").text.replace(",", ""))
+        self.bid_mmid = quote.find("bidmmid").text
+        self.ask_mmid = quote.find("askmmid").text
+        self.last_mmid = quote.find("lastmmid").text
         self.change = float(quote.find("change").text.replace(",", ""))
         if quote.find("high").text == "N/A":
             self.high = None
@@ -55,7 +63,12 @@ class SymbolQuote:
             self.low = "None"
         else:
             self.low = float(quote.find("low").text.replace(",", ""))
+        self.change_color = quote.find("changecolor").text
         self.volume = quote.find("vol").text
-        self.company_name = quote.find("companyname").text
+        self.bidxask = quote.find("bidxask").text
+        self.quote_time = quote.find("quotetime").text
+        self.last_trade_time = quote.find("lasttradetime").text
         self.real_time = quote.find("realtime").text == "T"
         self.fractional = quote.find("fractional").text == "T"
+        self.err_code = quote.find("errcode").text
+        self.company_name = quote.find("companyname").text
