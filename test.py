@@ -43,7 +43,7 @@ print(f"Quote Time: {quote.quote_time}")
 print(f"Last Trade Time: {quote.last_trade_time}")
 print(f"Real Time: {quote.real_time}")
 print(f"Fractional: {quote.fractional}")
-print(f"Error Code: {quote.error_code}")
+print(f"Error Code: {quote.err_code}")
 print(f"Company Name: {quote.company_name}")
 
 # Get positions and print them out for an account.
