@@ -11,7 +11,7 @@ from firstrade import urls
 class FTSession:
     """Class creating a session for Firstrade."""
 
-    def __init__(self, username, password, pin, profile_path=None):
+    def __init__(self, username, password, mfa=False, pin=0, profile_path=None):
         """
         Initializes a new instance of the FTSession class.
 
@@ -26,9 +26,27 @@ class FTSession:
         self.password = password
         self.pin = pin
         self.profile_path = profile_path
+        self.totp_type = self.set_totp_type(mfa)
+        self.totp_data = mfa
         self.session = requests.Session()
         self.login()
-
+    
+    def set_totp_type(mfa):
+        """Sets the TOTP type for the session."""
+        email_pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        if re.match(email_pattern, mfa):
+            type = "email"
+        elif len(mfa) == 10 and mfa.isdigit():
+            type = "sms"
+        elif len(mfa) == 4 and mfa.isdigit():
+            type = "pin"
+        elif mfa == "totp":
+            type = "totp"
+        else:
+            raise ValueError("A valid TOTP type was not passed.")
+        return type
+        
+    
     def login(self):
         """Method to validate and login to the Firstrade platform."""
         headers = urls.session_headers()
