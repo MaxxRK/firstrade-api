@@ -48,9 +48,12 @@ class SymbolQuote:
         self.bid = float(quote.find("bid").text.replace(",", ""))
         self.ask = float(quote.find("ask").text.replace(",", ""))
         self.last = float(quote.find("last").text.replace(",", ""))
-        self.bid_size = int(quote.find("bidsize").text.replace(",", ""))
-        self.ask_size = int(quote.find("asksize").text.replace(",", ""))
-        self.last_size = int(quote.find("lastsize").text.replace(",", ""))
+        temp_store = quote.find("bidsize").text.replace(",", "")
+        self.bid_size = int(temp_store) if temp_store.isdigit() else 0
+        temp_store = quote.find("asksize").text.replace(",", "")
+        self.ask_size = int(temp_store) if temp_store.isdigit() else 0
+        temp_store = quote.find("lastsize").text.replace(",", "")
+        self.last_size = int(temp_store) if temp_store.isdigit() else 0
         self.bid_mmid = quote.find("bidmmid").text
         self.ask_mmid = quote.find("askmmid").text
         self.last_mmid = quote.find("lastmmid").text
