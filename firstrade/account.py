@@ -43,7 +43,7 @@ class FTSession:
         elif mfa == "totp":
             type = "totp"
         else:
-            raise ValueError("A valid TOTP type was not passed.")
+            raise ValueError("A valid MFA type was not passed.")
         return type
         
     
