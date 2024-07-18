@@ -86,11 +86,6 @@ class Order:
             Order:order_confirmation: Dictionary containing the order confirmation data.
         """
 
-        if dry_run:
-            previewOrders = "1"
-        else:
-            previewOrders = ""
-
         if price_type == PriceType.MARKET:
             price = ""
 
@@ -100,8 +95,8 @@ class Order:
             "orderbar_accountid": "",
             "notional": "yes" if notional else "",
             "stockorderpage": "yes",
-            "submitOrders": "1",
-            "previewOrders": previewOrders,
+            "submitOrders": "",
+            "previewOrders": "1",
             "lotMethod": "1",
             "accountType": "1",
             "quoteprice": "",
@@ -133,6 +128,30 @@ class Order:
             "xml",
         )
         order_confirmation = {}
+        cdata = order_data.find("actiondata").string
+        cdata_soup = BeautifulSoup(cdata, "html.parser")
+        span = (
+            cdata_soup.find("div", class_="msg_bg")
+            .find("div", class_="yellow box")
+            .find("div", class_="error_msg")
+            .find("div", class_="outbox")
+            .find("div", class_="inbox")
+            .find("span")
+        )
+        if span:
+            order_warning = span.text.strip()
+            order_confirmation["warning"] = order_warning
+            data["viewederror"] = "1"
+        if not dry_run:
+            data["previewOrders"] = ""
+            data["submitOrders"] = "1"
+            order_data = BeautifulSoup(
+                self.ft_session.post(
+                    url=urls.orderbar(), headers=urls.session_headers(), data=data
+                ).text,
+                "xml",
+            )
+
         order_success = order_data.find("success").text.strip()
         order_confirmation["success"] = order_success
         action_data = order_data.find("actiondata").text.strip()
@@ -177,48 +196,56 @@ def get_orders(ft_session, account):
 
     # Data dictionary to send with the request
     data = {
-        'accountId': account,
+        "accountId": account,
     }
 
     # Post request to retrieve the order data
-    response = ft_session.post(url=urls.order_list(), headers=urls.session_headers(), data=data).text
+    response = ft_session.post(
+        url=urls.order_list(), headers=urls.session_headers(), data=data
+    ).text
 
     # Parse the response using BeautifulSoup
     soup = BeautifulSoup(response, "html.parser")
 
     # Find the table containing orders
-    table = soup.find('table', class_='tablesorter')
+    table = soup.find("table", class_="tablesorter")
     if not table:
         return []
 
-    rows = table.find_all('tr')[1:]  # skip the header row
+    rows = table.find_all("tr")[1:]  # skip the header row
 
     orders = []
     for row in rows:
         try:
-            cells = row.find_all('td')
-            tooltip_content = row.find('a', {'class': 'info'}).get('onmouseover')
-            tooltip_soup = BeautifulSoup(tooltip_content.split('tooltip.show(')[1].strip("');"), 'html.parser')
-            order_ref = tooltip_soup.find(text=lambda text: 'Order Ref' in text)
-            order_ref_number = order_ref.split('#: ')[1] if order_ref else None
+            cells = row.find_all("td")
+            tooltip_content = row.find("a", {"class": "info"}).get("onmouseover")
+            tooltip_soup = BeautifulSoup(
+                tooltip_content.split("tooltip.show(")[1].strip("');"), "html.parser"
+            )
+            order_ref = tooltip_soup.find(text=lambda text: "Order Ref" in text)
+            order_ref_number = order_ref.split("#: ")[1] if order_ref else None
             status = cells[8]
             # print(status)
-            sub_status = status.find('strong')
+            sub_status = status.find("strong")
             # print(sub_status)
             sub_status = sub_status.get_text(strip=True)
             # print(sub_status)
-            status = status.find('strong').get_text(strip=True) if status.find('strong') else status.get_text(strip=True)
+            status = (
+                status.find("strong").get_text(strip=True)
+                if status.find("strong")
+                else status.get_text(strip=True)
+            )
             order = {
-                'Date/Time': cells[0].get_text(strip=True),
-                'Reference': order_ref_number,
-                'Transaction': cells[1].get_text(strip=True),
-                'Quantity': int(cells[2].get_text(strip=True)),
-                'Symbol': cells[3].get_text(strip=True),
-                'Type': cells[4].get_text(strip=True),
-                'Price': float(cells[5].get_text(strip=True)),
-                'Duration': cells[6].get_text(strip=True),
-                'Instr.': cells[7].get_text(strip=True),
-                'Status': status,
+                "Date/Time": cells[0].get_text(strip=True),
+                "Reference": order_ref_number,
+                "Transaction": cells[1].get_text(strip=True),
+                "Quantity": int(cells[2].get_text(strip=True)),
+                "Symbol": cells[3].get_text(strip=True),
+                "Type": cells[4].get_text(strip=True),
+                "Price": float(cells[5].get_text(strip=True)),
+                "Duration": cells[6].get_text(strip=True),
+                "Instr.": cells[7].get_text(strip=True),
+                "Status": status,
             }
             orders.append(order)
         except Exception as e:
