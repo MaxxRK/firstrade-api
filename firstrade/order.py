@@ -44,6 +44,7 @@ class OrderType(str, Enum):
     SELL_SHORT = "SS"
     BUY_TO_COVER = "BC"
 
+
 class OrderInstructions(str, Enum):
     """
     This is an :class:'~enum.Enum'
