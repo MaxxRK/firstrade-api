@@ -44,6 +44,16 @@ class OrderType(str, Enum):
     SELL_SHORT = "SS"
     BUY_TO_COVER = "BC"
 
+class OrderInstructions(str, Enum):
+    """
+    This is an :class:'~enum.Enum'
+    that contains the valid instructions for an order.
+    """
+
+    AON = "1"
+    OPG = "4"
+    CLO = "5"
+
 
 class Order:
     """
@@ -66,6 +76,7 @@ class Order:
         price=0.00,
         dry_run=True,
         notional=False,
+        order_instruction: OrderInstructions = None,
     ):
         """
         Builds and places an order.
@@ -88,7 +99,6 @@ class Order:
 
         if price_type == PriceType.MARKET:
             price = ""
-
         data = {
             "submiturl": "/cgi-bin/orderbar",
             "orderbar_clordid": "",
@@ -109,7 +119,7 @@ class Order:
             "priceType": price_type,
             "limitPrice": price,
             "duration": duration,
-            "qualifier": "0",
+            "qualifier": "0" if order_instruction is None else order_instruction,
             "cond_symbol0_0": "",
             "cond_type0_0": "2",
             "cond_compare_type0_0": "2",
