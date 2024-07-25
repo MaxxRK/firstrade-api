@@ -100,11 +100,14 @@ class Order:
 
         if price_type == PriceType.MARKET:
             price = ""
-        if order_instruction == OrderInstructions.AON and price_type == PriceType.MARKET:
+        if (
+            order_instruction == OrderInstructions.AON
+            and price_type == PriceType.MARKET
+        ):
             raise ValueError("AON orders cannot be market orders.")
         if order_instruction == OrderInstructions.AON and quantity <= 100:
             raise ValueError("AON orders must be greater than 100 shares.")
-            
+
         data = {
             "submiturl": "/cgi-bin/orderbar",
             "orderbar_clordid": "",
