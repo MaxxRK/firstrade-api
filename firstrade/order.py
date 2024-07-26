@@ -56,6 +56,16 @@ class OrderInstructions(str, Enum):
     CLO = "5"
 
 
+class OptionType(str, Enum):
+    """
+    This is an :class:'~enum.Enum'
+    that contains the valid option types for an order.
+    """
+
+    CALL = "C"
+    PUT = "P"
+
+
 class Order:
     """
     This class contains information about an order.
@@ -206,12 +216,12 @@ def place_option_order(
         symbol,
         exp_date,
         strike: float,
-        call_put_type: int,
+        call_put_type: OptionType,
         price_type: PriceType,
-        stop_price: float,
         order_type: OrderType,
         quantity,
         duration: Duration,
+        stop_price: float = None,
         price=0.00,
         dry_run=True,
         notional=False,
@@ -232,9 +242,9 @@ def place_option_order(
         "orderbar_accountid":"",
         "optionorderpage": "yes",
         "submitOrders":"",
-        "previewOrders": 1,
-        "lotMethod": 1,
-        "accountType": 2,
+        "previewOrders": "1",
+        "lotMethod": "1",
+        "accountType": "2",
         "quoteprice":"",
         "viewederror":"",
         "stocksubmittedcompanyname1":"",
@@ -247,9 +257,10 @@ def place_option_order(
         "strike": strike,
         "callputtype": call_put_type,
         "priceType": price_type,
-        "stopPrice": stop_price,
+        "limitPrice": price if price_type == PriceType.LIMIT else "",
+        "stopPrice": stop_price if stop_price is not None else "",
         "duration": duration,
-        "qualifier":"",
+        "qualifier":"0" if order_instruction is None else order_instruction,
         "cond_symbol0_0":"",
         "cond_type0_0": 2,
         "cond_compare_type0_0": 2,
@@ -299,25 +310,25 @@ def place_option_order(
         "underlyingsymbol6":"",
         "expdate6":"",
         "strike6":"",
-        "callputtype6":"P",
+        "callputtype6":call_put_type,
         "transactionType7":"",
         "contracts7":"",
         "underlyingsymbol7":"",
         "expdate7":"",
         "strike7":"",
-        "callputtype7":"P",
+        "callputtype7":call_put_type,
         "transactionType8":"",
         "contracts8":"",
         "underlyingsymbol8":"",
         "expdate8":"",
         "strike8":"",
-        "callputtype8":"P",
+        "callputtype8":call_put_type,
         "transactionType9":"",
         "contracts9":"",
         "underlyingsymbol9":"",
         "expdate9":"",
         "strike9":"",
-        "callputtype9":"P",
+        "callputtype9":call_put_type,
         "netprice_bf":"",
         "qualifier_bf":"",
     }
