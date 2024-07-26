@@ -197,6 +197,191 @@ class Order:
         order_confirmation["errcode"] = order_data.find("errcode").text.strip()
         self.order_confirmation = order_confirmation
 
+def place_option_order(
+        self,
+        opt_choice,
+        account,
+        trans_type,
+        contracts,
+        symbol,
+        exp_date,
+        strike: float,
+        call_put_type: int,
+        price_type: PriceType,
+        stop_price: float,
+        order_type: OrderType,
+        quantity,
+        duration: Duration,
+        price=0.00,
+        dry_run=True,
+        notional=False,
+        order_instruction: OrderInstructions = None,
+):
+    
+    if price_type == PriceType.MARKET:
+            price = ""
+    if order_instruction == OrderInstructions.AON and price_type != PriceType.LIMIT:
+        raise ValueError("AON orders must be a limit order.")
+    if order_instruction == OrderInstructions.AON and quantity <= 100:
+            raise ValueError("AON orders must be greater than 100 shares.")
+        
+    
+    data = {
+        "submiturl": "/cgi-bin/optionorder_request",
+        "orderbar_clordid":"",
+        "orderbar_accountid":"",
+        "optionorderpage": "yes",
+        "submitOrders":"",
+        "previewOrders": 1,
+        "lotMethod": 1,
+        "accountType": 2,
+        "quoteprice":"",
+        "viewederror":"",
+        "stocksubmittedcompanyname1":"",
+        "opt_choice": opt_choice,
+        "accountId": account,
+        "transactionType": trans_type,
+        "contracts": contracts,
+        "underlyingsymbol": symbol,
+        "expdate": exp_date,
+        "strike": strike,
+        "callputtype": call_put_type,
+        "priceType": price_type,
+        "stopPrice": stop_price,
+        "duration": duration,
+        "qualifier":"",
+        "cond_symbol0_0":"",
+        "cond_type0_0": 2,
+        "cond_compare_type0_0": 2,
+        "cond_compare_value0_0":"",
+        "cond_and_or0": 1,
+        "cond_symbol0_1":"",
+        "cond_type0_1": 2,
+        "cond_compare_type0_1": 2,
+        "cond_compare_value0_1":"",
+        "optionspos_dropdown1":"",
+        "transactionType2":"",
+        "contracts2":"",
+        "underlyingsymbol2":"",
+        "expdate2":"",
+        "strike2":"",
+        "optionspos_dropdown2":"",
+        "transactionType3":"",
+        "contracts3":"",
+        "underlyingsymbol3":"",
+        "expdate3":"",
+        "strike3":"",
+        "netprice_sp":"",
+        "qualifier_sp":"",
+        "optionspos_dropdown3":"",
+        "transactionType4":"",
+        "contracts4":"",
+        "underlyingsymbol4":"",
+        "expdate4":"",
+        "strike4":"",
+        "transactionType5":"",
+        "contracts5":"",
+        "underlyingsymbol5":"",
+        "expdate5":"",
+        "strike5":"",
+        "netprice_st":"",
+        "qualifier_st":"",
+        "optionspos_dropdown":"",
+        "contracts10":"",
+        "expdate11":"",
+        "strike11":"",
+        "netprice_ro":"",
+        "qualifier_ro":"",
+        "opt_u_symbol":"",
+        "mleg_close_dropdown":"",
+        "transactionType6":"",
+        "contracts6":"",
+        "underlyingsymbol6":"",
+        "expdate6":"",
+        "strike6":"",
+        "callputtype6":"P",
+        "transactionType7":"",
+        "contracts7":"",
+        "underlyingsymbol7":"",
+        "expdate7":"",
+        "strike7":"",
+        "callputtype7":"P",
+        "transactionType8":"",
+        "contracts8":"",
+        "underlyingsymbol8":"",
+        "expdate8":"",
+        "strike8":"",
+        "callputtype8":"P",
+        "transactionType9":"",
+        "contracts9":"",
+        "underlyingsymbol9":"",
+        "expdate9":"",
+        "strike9":"",
+        "callputtype9":"P",
+        "netprice_bf":"",
+        "qualifier_bf":"",
+    }
+    
+    order_data = BeautifulSoup(
+            self.ft_session.post(
+                url=urls.orderbar(), headers=urls.session_headers(), data=data
+            ).text,
+            "xml",
+        )
+    order_confirmation = {}
+    cdata = order_data.find("actiondata").string
+    cdata_soup = BeautifulSoup(cdata, "html.parser")
+    span = (
+        cdata_soup.find("div", class_="msg_bg")
+        .find("div", class_="yellow box")
+        .find("div", class_="error_msg")
+        .find("div", class_="outbox")
+        .find("div", class_="inbox")
+        .find("span")
+    )
+    if span:
+        order_warning = span.text.strip()
+        order_confirmation["warning"] = order_warning
+        data["viewederror"] = "1"
+    if not dry_run:
+        data["previewOrders"] = ""
+        data["submitOrders"] = "1"
+        order_data = BeautifulSoup(
+            self.ft_session.post(
+                url=urls.orderbar(), headers=urls.session_headers(), data=data
+            ).text,
+            "xml",
+        )
+
+    order_success = order_data.find("success").text.strip()
+    order_confirmation["success"] = order_success
+    action_data = order_data.find("actiondata").text.strip()
+    if order_success != "No":
+        # Extract the table data
+        table_start = action_data.find("<table")
+        table_end = action_data.find("</table>") + len("</table>")
+        table_data = action_data[table_start:table_end]
+        table_data = BeautifulSoup(table_data, "xml")
+        titles = table_data.find_all("th")
+        data = table_data.find_all("td")
+        for i, title in enumerate(titles):
+            order_confirmation[f"{title.get_text()}"] = data[i].get_text()
+        if not dry_run:
+            start_index = action_data.find(
+                "Your order reference number is: "
+            ) + len("Your order reference number is: ")
+            end_index = action_data.find("</div>", start_index)
+            order_number = action_data[start_index:end_index]
+        else:
+            start_index = action_data.find('id="') + len('id="')
+            end_index = action_data.find('" style=', start_index)
+            order_number = action_data[start_index:end_index]
+        order_confirmation["orderid"] = order_number
+    else:
+        order_confirmation["actiondata"] = action_data
+    order_confirmation["errcode"] = order_data.find("errcode").text.strip()
+    self.order_confirmation = order_confirmation
+    
 
 def get_orders(ft_session, account):
     """
