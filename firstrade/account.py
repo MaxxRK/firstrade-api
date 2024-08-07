@@ -1,9 +1,7 @@
 import os
 import pickle
-import re
 
 import requests
-from bs4 import BeautifulSoup
 
 from firstrade import urls
 

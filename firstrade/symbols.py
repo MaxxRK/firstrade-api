@@ -1,5 +1,3 @@
-from bs4 import BeautifulSoup
-
 from firstrade import urls
 from firstrade.account import FTSession
 
