@@ -9,9 +9,9 @@ from firstrade import urls
 
 
 class FTSession:
-    """Class creating a session for Firstrade."""
 
-    def __init__(self, username, password, pin, profile_path=None):
+    """Class creating a session for Firstrade."""
+    def __init__(self, username, password, pin=None, email=None, phone=None, profile_path=None):
         """
         Initializes a new instance of the FTSession class.
 
@@ -25,70 +25,88 @@ class FTSession:
         self.username = username
         self.password = password
         self.pin = pin
+        self.email = self._mask_email(email) if email is not None else None
+        self.phone = phone
         self.profile_path = profile_path
+        self.t_token = None
+        self.otp_options = None
+        self.login_json = None
         self.session = requests.Session()
-        self.login()
 
     def login(self):
         """Method to validate and login to the Firstrade platform."""
-        headers = urls.session_headers()
-        cookies = self.load_cookies()
-        cookies = requests.utils.cookiejar_from_dict(cookies)
-        self.session.cookies.update(cookies)
-        response = self.session.get(
-            url=urls.get_xml(), headers=urls.session_headers(), cookies=cookies
+        self.session.headers = urls.session_headers()
+        ftat = self._load_cookies()
+        if ftat != "":
+            self.session.headers["ftat"] = ftat
+            
+    
+        response = self.session.get(url="https://api3x.firstrade.com/", timeout=10)
+        self.session.headers["access-token"] = urls.access_token()
+        
+        data = {
+            "username": r"" + self.username,
+            "password": r"" + self.password,
+        }
+
+        response = self.session.post(
+            url=urls.login(),
+            data=data,
         )
-        if response.status_code != 200:
-            raise Exception(
-                "Login failed. Check your credentials or internet connection."
-            )
-        if "/cgi-bin/sessionfailed?reason=6" in response.text:
-            self.session.get(url=urls.login(), headers=headers)
-            data = {
-                "redirect": "",
-                "ft_locale": "en-us",
-                "login.x": "Log In",
-                "username": r"" + self.username,
-                "password": r"" + self.password,
-                "destination_page": "home",
+        self.login_json = response.json()
+        if "mfa" not in self.login_json and "ftat" in self.login_json and self.login_json["error"] == "":
+            self.session.headers["sid"] = self.login_json["sid"]
+            return False
+        self.t_token = self.login_json.get("t_token")
+        self.otp_options = self.login_json.get("otp")
+        if self.login_json["error"] != "" or response.status_code != 200:
+            raise Exception(f"Login failed api reports the following error(s). {self.login_json['error']}")
+        
+        need_code = self._handle_mfa()
+        if self.login_json["error"]!= "":
+                raise Exception(f"Login failed api reports the following error(s): {self.login_json['error']}.")
+        if need_code:
+            return True
+        self.session.headers["ftat"] = self.login_json["ftat"]
+        self.session.headers["sid"] = self.login_json["sid"]
+        self._save_cookies()
+        return False
+
+    def login_two(self, code):
+        """Method to finish login to the Firstrade platform."""
+        data = {
+            "otpCode": code,
+            "verificationSid": self.session.headers["sid"],
+            "remember_for": "30",
+            "t_token": self.t_token,
             }
-
-            self.session.post(
-                url=urls.login(),
-                headers=headers,
-                cookies=self.session.cookies,
-                data=data,
-            )
-            data = {
-                "destination_page": "home",
-                "pin": self.pin,
-                "pin.x": "++OK++",
-                "sring": "0",
-                "pin": self.pin,
-            }
-
-            self.session.post(
-                url=urls.pin(), headers=headers, cookies=self.session.cookies, data=data
-            )
-            self.save_cookies()
-        if (
-            "/cgi-bin/sessionfailed?reason=6"
-            in self.session.get(
-                url=urls.get_xml(), headers=urls.session_headers(), cookies=cookies
-            ).text
-        ):
-            raise Exception("Login failed. Check your credentials.")
-
-    def load_cookies(self):
+        response = self.session.post(urls.verify_pin(), data=data)
+        self.login_json = response.json()
+        if self.login_json["error"]!= "":
+                raise Exception(f"Login failed api reports the following error(s): {self.login_json['error']}.")
+        self.session.headers["ftat"] = self.login_json["ftat"]
+        self.session.headers["sid"] = self.login_json["sid"]
+        print(self.login_json)
+        self._save_cookies()
+    
+    def delete_cookies(self):    
+        """Deletes the session cookies."""
+        if self.profile_path is not None:
+            path = os.path.join(self.profile_path, f"ft_cookies{self.username}.pkl")
+        else:
+            path = f"ft_cookies{self.username}.pkl"
+        os.remove(path)
+            
+    def _load_cookies(self):
         """
         Checks if session cookies were saved.
 
         Returns:
             Dict: Dictionary of cookies. Nom Nom
         """
-        cookies = {}
+
+        ftat = ""
         directory = os.path.abspath(self.profile_path) if self.profile_path is not None else "."
-        
         if not os.path.exists(directory):
             os.makedirs(directory)
 
@@ -96,10 +114,10 @@ class FTSession:
             if filename.endswith(f"{self.username}.pkl"):
                 filepath = os.path.join(directory, filename)
                 with open(filepath, "rb") as f:
-                    cookies = pickle.load(f)
-        return cookies
-
-    def save_cookies(self):
+                    ftat = pickle.load(f)
+        return ftat
+        
+    def _save_cookies(self):
         """Saves session cookies to a file."""
         if self.profile_path is not None:
             directory = os.path.abspath(self.profile_path)
@@ -109,15 +127,48 @@ class FTSession:
         else:
             path = f"ft_cookies{self.username}.pkl"
         with open(path, "wb") as f:
-            pickle.dump(self.session.cookies.get_dict(), f)
+            ftat = self.session.headers.get("ftat")
+            pickle.dump(ftat, f)
+        
+    def _mask_email(self, email):
+        """Masks the email for security purposes."""
+        local, domain = email.split('@')
+        masked_local = local[0] + '*' * 4
+        domain_name, tld = domain.split('.')
+        masked_domain = domain_name[0] + '*' * 4
+        return f"{masked_local}@{masked_domain}.{tld}"
     
-    def delete_cookies(self):    
-        """Deletes the session cookies."""
-        if self.profile_path is not None:
-            path = os.path.join(self.profile_path, f"ft_cookies{self.username}.pkl")
-        else:
-            path = f"ft_cookies{self.username}.pkl"
-        os.remove(path)
+    def _handle_mfa(self):
+        """Handles multi-factor authentication."""
+        if "mfa" in self.login_json and self.pin is not None:
+            data = {
+                "pin": self.pin,
+                "remember_for": "30",
+                "t_token": self.t_token, 
+            }
+            response = self.session.post(urls.pin(), data=data)
+            self.login_json = response.json()
+        elif "mfa" in self.login_json and (self.email is not None or self.phone is not None):
+            for item in self.otp_options:
+                if item["channel"] == "sms" and self.phone is not None:
+                    if self.phone in item["recipientMask"]:
+                        data = {
+                            "recipientId": item["recipientId"],
+                            "t_token": self.t_token,
+                        }
+                elif item["channel"] == "email" and self.email is not None:
+                    if self.email == item["recipientMask"]:
+                        data = {
+                            "recipientId": item["recipientId"],
+                            "t_token": self.t_token, 
+                        }
+            response = self.session.post(urls.request_code(), data=data)
+        print(response.json())
+        self.login_json = response.json()
+        if self.login_json["error"] == "":
+            self.session.headers["sid"]= self.login_json["verificationSid"]
+            return False if self.pin is not None else True
+
 
     def __getattr__(self, name):
         """
@@ -148,72 +199,31 @@ class FTAccountData:
         self.account_numbers = []
         self.account_statuses = []
         self.account_balances = []
-        self.securities_held = {}
-        all_account_info = []
-        html_string = self.session.get(
-            url=urls.account_list(),
-            headers=urls.session_headers(),
-            cookies=self.session.cookies,
-        ).text
-        regex_accounts = re.findall(r"([0-9]+)-", html_string)
+        response = self.session.get(url=urls.user_info())
+        if response.status_code != 200:
+            raise Exception("Failed to get user info.")
+        self.user_info = response.json()
+        response = self.session.get(urls.account_list())
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise Exception(f"Failed to get account list. API returned the following error: {response.json()['error']}")
+        self.all_accounts = response.json()
+        for item in self.all_accounts["items"]:
+            self.account_numbers.append(item["account"])
+            self.account_balances.append(float(item["total_value"]))
 
-        for match in regex_accounts:
-            self.account_numbers.append(match)
+    def get_account_balances(self, account):
+        """Gets account balances for a given account.
 
-        for account in self.account_numbers:
-            # reset cookies to base login cookies to run scripts
-            self.session.cookies.clear()
-            self.session.cookies.update(self.session.load_cookies())
-            # set account to get data for
-            data = {"accountId": account}
-            self.session.post(
-                url=urls.account_status(),
-                headers=urls.session_headers(),
-                cookies=self.session.cookies,
-                data=data,
-            )
-            # request to get account status data
-            data = {"req": "get_status"}
-            account_status = self.session.post(
-                url=urls.status(),
-                headers=urls.session_headers(),
-                cookies=self.session.cookies,
-                data=data,
-            ).json()
-            self.account_statuses.append(account_status["data"])
-            data = {"page": "bal", "account_id": account}
-            account_soup = BeautifulSoup(
-                self.session.post(
-                    url=urls.get_xml(),
-                    headers=urls.session_headers(),
-                    cookies=self.session.cookies,
-                    data=data,
-                ).text,
-                "xml",
-            )
-            balance = account_soup.find("total_account_value").text
-            self.account_balances.append(balance)
-            all_account_info.append(
-                {
-                    account: {
-                        "Balance": balance,
-                        "Status": {
-                            "primary": account_status["data"]["primary"],
-                            "domestic": account_status["data"]["domestic"],
-                            "joint": account_status["data"]["joint"],
-                            "ira": account_status["data"]["ira"],
-                            "hasMargin": account_status["data"]["hasMargin"],
-                            "opLevel": account_status["data"]["opLevel"],
-                            "p_country": account_status["data"]["p_country"],
-                            "mrgnStatus": account_status["data"]["mrgnStatus"],
-                            "opStatus": account_status["data"]["opStatus"],
-                            "margin_id": account_status["data"]["margin_id"],
-                        },
-                    }
-                }
-            )
+        Args:
+            account (str): Account number of the account you want to get balances for.
 
-        self.all_accounts = all_account_info
+        Returns:
+            dict: Dict of the response from the API.
+        """
+        response = self.session.get(urls.account_balances(account))
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise Exception(f"Failed to get account balances. API returned the following error: {response.json()['error']}")
+        return response.json()
 
     def get_positions(self, account):
         """Gets currently held positions for a given account.
@@ -222,36 +232,10 @@ class FTAccountData:
             account (str): Account number of the account you want to get positions for.
 
         Returns:
-            self.securities_held {dict}:
-            Dict of held positions with the pos. ticker as the key.
+            dict: Dict of the response from the API.
         """
-        data = {
-            "page": "pos",
-            "accountId": str(account),
-        }
-        position_soup = BeautifulSoup(
-            self.session.post(
-                url=urls.get_xml(),
-                headers=urls.session_headers(),
-                data=data,
-                cookies=self.session.cookies,
-            ).text,
-            "xml",
-        )
-
-        tickers = position_soup.find_all("symbol")
-        quantity = position_soup.find_all("quantity")
-        price = position_soup.find_all("price")
-        change = position_soup.find_all("change")
-        change_percent = position_soup.find_all("changepercent")
-        vol = position_soup.find_all("vol")
-        for i, ticker in enumerate(tickers):
-            ticker = ticker.text
-            self.securities_held[ticker] = {
-                "quantity": quantity[i].text,
-                "price": price[i].text,
-                "change": change[i].text,
-                "change_percent": change_percent[i].text,
-                "vol": vol[i].text,
-            }
-        return self.securities_held
+        
+        response = self.session.get(urls.account_positions(account))
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise Exception(f"Failed to get account positions. API returned the following error: {response.json()['error']}")
+        return response.json()

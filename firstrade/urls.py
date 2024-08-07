@@ -3,19 +3,40 @@ def get_xml():
 
 
 def login():
-    return "https://invest.firstrade.com/cgi-bin/login"
+    #return "https://invest.firstrade.com/cgi-bin/login"
+    return "https://api3x.firstrade.com/sess/login"
 
 
 def pin():
-    return "https://invest.firstrade.com/cgi-bin/enter_pin?destination_page=home"
+    return "https://api3x.firstrade.com/sess/verify_pin"
+
+
+def request_code():
+    return "https://api3x.firstrade.com/sess/request_code"
+
+
+def verify_pin():
+    return "https://api3x.firstrade.com/sess/verify_pin"
+
+
+def user_info():
+    return "https://api3x.firstrade.com/private/userinfo"
 
 
 def account_list():
-    return "https://invest.firstrade.com/cgi-bin/getaccountlist"
+    return "https://api3x.firstrade.com/private/acct_list"
 
 
-def quote(symbol):
-    return f"https://invest.firstrade.com/cgi-bin/getxml?page=quo&quoteSymbol={symbol}"
+def account_balances(account):
+    return f"https://api3x.firstrade.com/private/balances?account={account}"
+
+
+def account_positions(account):
+    return f"https://api3x.firstrade.com/private/positions?account={account}&per_page=200"
+
+
+def quote(account, symbol):
+    return f"https://api3x.firstrade.com/public/quote?account={account}&q={symbol}"
 
 
 def orderbar():
@@ -35,12 +56,12 @@ def status():
 
 def session_headers():
     headers = {
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Host": "invest.firstrade.com",
-        "Referer": "https://invest.firstrade.com/cgi-bin/main",
-        "Connection": "keep-alive",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.1938.81",
+        "Accept-Encoding": "gzip",
+        "Connection": "Keep-Alive",
+        "Host": "api3x.firstrade.com",
+        "User-Agent": "okhttp/4.9.2",   
     }
     return headers
+
+def access_token():
+    return "833w3XuIFycv18ybi"
