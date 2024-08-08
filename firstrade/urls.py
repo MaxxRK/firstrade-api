@@ -1,7 +1,3 @@
-def get_xml():
-    return "https://invest.firstrade.com/cgi-bin/getxml"
-
-
 def login():
     #return "https://invest.firstrade.com/cgi-bin/login"
     return "https://api3x.firstrade.com/sess/login"
@@ -38,21 +34,26 @@ def account_positions(account):
 def quote(account, symbol):
     return f"https://api3x.firstrade.com/public/quote?account={account}&q={symbol}"
 
+def order():
+    return "https://api3x.firstrade.com/private/stock_order"
 
-def orderbar():
-    return "https://invest.firstrade.com/cgi-bin/orderbar"
+def order_list(account):
+    return f"https://api3x.firstrade.com/private/order_status?account={account}"
 
+def cancel_order():
+    return "https://api3x.firstrade.com/private/cancel_order"
 
-def account_status():
-    return "https://invest.firstrade.com/cgi-bin/account_status"
+def option_dates(symbol):
+    return f"https://api3x.firstrade.com/public/oc?m=get_exp_dates&root_symbol={symbol}"
 
-def order_list():
-    return "https://invest.firstrade.com/cgi-bin/orderstatus"
+def greek_options():
+    return "https://api3x.firstrade.com/private/greekoptions/analytical"
 
+def option_quote(symbol, date):
+    return f"https://api3x.firstrade.com/public/oc?m=get_oc&root_symbol={symbol}&exp_date={date}&chains_range=A"
 
-def status():
-    return "https://invest.firstrade.com/scripts/profile/margin_v2.php"
-
+def option_order():
+    return "https://api3x.firstrade.com/private/option_order"
 
 def session_headers():
     headers = {

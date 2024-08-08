@@ -43,6 +43,8 @@ class OrderType(str, Enum):
     SELL = "S"
     SELL_SHORT = "SS"
     BUY_TO_COVER = "BC"
+    BUY_OPTION = "BO"
+    SELL_OPTION = "SO"
 
 
 class OrderInstructions(str, Enum):
@@ -78,16 +80,16 @@ class Order:
 
     def place_order(
         self,
-        account,
-        symbol,
+        account: str,
+        symbol: str,
         price_type: PriceType,
         order_type: OrderType,
-        quantity,
+        quantity: int,
         duration: Duration,
-        price=0.00,
-        dry_run=True,
-        notional=False,
-        order_instruction: OrderInstructions = None,
+        price: float=0.00,
+        dry_run: bool=True,
+        notional: bool=False,
+        order_instruction: OrderInstructions = "0",
     ):
         """
         Builds and places an order.
@@ -114,98 +116,36 @@ class Order:
             raise ValueError("AON orders must be a limit order.")
         if order_instruction == OrderInstructions.AON and quantity <= 100:
             raise ValueError("AON orders must be greater than 100 shares.")
-
+ 
         data = {
-            "submiturl": "/cgi-bin/orderbar",
-            "orderbar_clordid": "",
-            "orderbar_accountid": "",
-            "notional": "yes" if notional else "",
-            "stockorderpage": "yes",
-            "submitOrders": "",
-            "previewOrders": "1",
-            "lotMethod": "1",
-            "accountType": "1",
-            "quoteprice": "",
-            "viewederror": "",
-            "stocksubmittedcompanyname1": "",
-            "accountId": account,
-            "transactionType": order_type,
-            "quantity": quantity,
             "symbol": symbol,
-            "priceType": price_type,
-            "limitPrice": price,
+            "transaction": order_type,
+            "shares": quantity,
             "duration": duration,
-            "qualifier": "0" if order_instruction is None else order_instruction,
-            "cond_symbol0_0": "",
-            "cond_type0_0": "2",
-            "cond_compare_type0_0": "2",
-            "cond_compare_value0_0": "",
-            "cond_and_or0": "1",
-            "cond_symbol0_1": "",
-            "cond_type0_1": "2",
-            "cond_compare_type0_1": "2",
-            "cond_compare_value0_1": "",
+            "preview": "true",
+            "instructions": order_instruction,
+            "account": account,
+            "price_type": price_type,
+            "limit_price": price if price_type == PriceType.LIMIT else "0",
         }
-
-        order_data = BeautifulSoup(
-            self.ft_session.post(
-                url=urls.orderbar(), headers=urls.session_headers(), data=data
-            ).text,
-            "xml",
-        )
-        order_confirmation = {}
-        cdata = order_data.find("actiondata").string
-        cdata_soup = BeautifulSoup(cdata, "html.parser")
-        span = (
-            cdata_soup.find("div", class_="msg_bg")
-            .find("div", class_="yellow box")
-            .find("div", class_="error_msg")
-            .find("div", class_="outbox")
-            .find("div", class_="inbox")
-            .find("span")
-        )
-        if span:
-            order_warning = span.text.strip()
-            order_confirmation["warning"] = order_warning
-            data["viewederror"] = "1"
-        if not dry_run:
-            data["previewOrders"] = ""
-            data["submitOrders"] = "1"
-            order_data = BeautifulSoup(
-                self.ft_session.post(
-                    url=urls.orderbar(), headers=urls.session_headers(), data=data
-                ).text,
-                "xml",
+        if notional:
+            data["dollar_ammount"] = price
+        response = self.ft_session.post(url=urls.order(), data=data)
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise Exception(
+                f"Failed to preview order for {symbol}. API returned the following error: {response.json()['error']}"
             )
-
-        order_success = order_data.find("success").text.strip()
-        order_confirmation["success"] = order_success
-        action_data = order_data.find("actiondata").text.strip()
-        if order_success != "No":
-            # Extract the table data
-            table_start = action_data.find("<table")
-            table_end = action_data.find("</table>") + len("</table>")
-            table_data = action_data[table_start:table_end]
-            table_data = BeautifulSoup(table_data, "xml")
-            titles = table_data.find_all("th")
-            data = table_data.find_all("td")
-            for i, title in enumerate(titles):
-                order_confirmation[f"{title.get_text()}"] = data[i].get_text()
-            if not dry_run:
-                start_index = action_data.find(
-                    "Your order reference number is: "
-                ) + len("Your order reference number is: ")
-                end_index = action_data.find("</div>", start_index)
-                order_number = action_data[start_index:end_index]
-            else:
-                start_index = action_data.find('id="') + len('id="')
-                end_index = action_data.find('" style=', start_index)
-                order_number = action_data[start_index:end_index]
-            order_confirmation["orderid"] = order_number
-        else:
-            order_confirmation["actiondata"] = action_data
-        order_confirmation["errcode"] = order_data.find("errcode").text.strip()
-        self.order_confirmation = order_confirmation
+        preview_data = response.json()
+        if dry_run:
+            return preview_data
+        data["stage"] = "P"
+        
+        response = self.ft_session.post(url=urls.order(), data=data)
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise Exception(
+                f"Failed to place order for {symbol}. API returned the following error: {response.json()['error']}"
+            )
+        self.order_confirmation = response.json()
 
 def place_option_order(
         self,
@@ -225,7 +165,7 @@ def place_option_order(
         price=0.00,
         dry_run=True,
         notional=False,
-        order_instruction: OrderInstructions = None,
+        order_instruction: OrderInstructions = "0",
 ):
     
     if price_type == PriceType.MARKET:
@@ -237,164 +177,38 @@ def place_option_order(
         
     
     data = {
-        "submiturl": "/cgi-bin/optionorder_request",
-        "orderbar_clordid":"",
-        "orderbar_accountid":"",
-        "optionorderpage": "yes",
-        "submitOrders":"",
-        "previewOrders": "1",
-        "lotMethod": "1",
-        "accountType": "2",
-        "quoteprice":"",
-        "viewederror":"",
-        "stocksubmittedcompanyname1":"",
-        "opt_choice": opt_choice,
-        "accountId": account,
-        "transactionType": trans_type,
-        "contracts": contracts,
-        "underlyingsymbol": symbol,
-        "expdate": exp_date,
-        "strike": strike,
-        "callputtype": call_put_type,
-        "priceType": price_type,
-        "limitPrice": price if price_type == PriceType.LIMIT else "",
-        "stopPrice": stop_price if stop_price is not None else "",
         "duration": duration,
-        "qualifier":"0" if order_instruction is None else order_instruction,
-        "cond_symbol0_0":"",
-        "cond_type0_0": 2,
-        "cond_compare_type0_0": 2,
-        "cond_compare_value0_0":"",
-        "cond_and_or0": 1,
-        "cond_symbol0_1":"",
-        "cond_type0_1": 2,
-        "cond_compare_type0_1": 2,
-        "cond_compare_value0_1":"",
-        "optionspos_dropdown1":"",
-        "transactionType2":"",
-        "contracts2":"",
-        "underlyingsymbol2":"",
-        "expdate2":"",
-        "strike2":"",
-        "optionspos_dropdown2":"",
-        "transactionType3":"",
-        "contracts3":"",
-        "underlyingsymbol3":"",
-        "expdate3":"",
-        "strike3":"",
-        "netprice_sp":"",
-        "qualifier_sp":"",
-        "optionspos_dropdown3":"",
-        "transactionType4":"",
-        "contracts4":"",
-        "underlyingsymbol4":"",
-        "expdate4":"",
-        "strike4":"",
-        "transactionType5":"",
-        "contracts5":"",
-        "underlyingsymbol5":"",
-        "expdate5":"",
-        "strike5":"",
-        "netprice_st":"",
-        "qualifier_st":"",
-        "optionspos_dropdown":"",
-        "contracts10":"",
-        "expdate11":"",
-        "strike11":"",
-        "netprice_ro":"",
-        "qualifier_ro":"",
-        "opt_u_symbol":"",
-        "mleg_close_dropdown":"",
-        "transactionType6":"",
-        "contracts6":"",
-        "underlyingsymbol6":"",
-        "expdate6":"",
-        "strike6":"",
-        "callputtype6":call_put_type,
-        "transactionType7":"",
-        "contracts7":"",
-        "underlyingsymbol7":"",
-        "expdate7":"",
-        "strike7":"",
-        "callputtype7":call_put_type,
-        "transactionType8":"",
-        "contracts8":"",
-        "underlyingsymbol8":"",
-        "expdate8":"",
-        "strike8":"",
-        "callputtype8":call_put_type,
-        "transactionType9":"",
-        "contracts9":"",
-        "underlyingsymbol9":"",
-        "expdate9":"",
-        "strike9":"",
-        "callputtype9":call_put_type,
-        "netprice_bf":"",
-        "qualifier_bf":"",
+        "instructions": order_instruction,
+        "transaction": order_type,
+        "contracts": quantity,
+        "symbol": symbol,
+        "preview": "true",
+        "account": account,
+        "price_type": price_type,
     }
     
-    order_data = BeautifulSoup(
-            self.ft_session.post(
-                url=urls.orderbar(), headers=urls.session_headers(), data=data
-            ).text,
-            "xml",
+    response = self.ft_session.post(url=urls.option_order(), data=data)
+    if response.status_code != 200 or response.json()["error"] != "":
+        raise Exception(
+            f"Failed to preview order for {symbol}. " 
+            f"API returned the following error: {response.json()['error']} "
+            f"With the following message: {response.json()['message']} "
         )
-    order_confirmation = {}
-    cdata = order_data.find("actiondata").string
-    cdata_soup = BeautifulSoup(cdata, "html.parser")
-    span = (
-        cdata_soup.find("div", class_="msg_bg")
-        .find("div", class_="yellow box")
-        .find("div", class_="error_msg")
-        .find("div", class_="outbox")
-        .find("div", class_="inbox")
-        .find("span")
-    )
-    if span:
-        order_warning = span.text.strip()
-        order_confirmation["warning"] = order_warning
-        data["viewederror"] = "1"
-    if not dry_run:
-        data["previewOrders"] = ""
-        data["submitOrders"] = "1"
-        order_data = BeautifulSoup(
-            self.ft_session.post(
-                url=urls.orderbar(), headers=urls.session_headers(), data=data
-            ).text,
-            "xml",
+    if dry_run:
+        return response.json()
+    data["preview"] = "false"
+    response = self.ft_session.post(url=urls.option_order(), data=data)
+    if response.status_code != 200 or response.json()["error"] != "":
+        raise Exception(
+            f"Failed to preview order for {symbol}. " 
+            f"API returned the following error: {response.json()['error']} "
+            f"With the following message: {response.json()['message']} "
         )
+    self.order_confirmation = response.json()
 
-    order_success = order_data.find("success").text.strip()
-    order_confirmation["success"] = order_success
-    action_data = order_data.find("actiondata").text.strip()
-    if order_success != "No":
-        # Extract the table data
-        table_start = action_data.find("<table")
-        table_end = action_data.find("</table>") + len("</table>")
-        table_data = action_data[table_start:table_end]
-        table_data = BeautifulSoup(table_data, "xml")
-        titles = table_data.find_all("th")
-        data = table_data.find_all("td")
-        for i, title in enumerate(titles):
-            order_confirmation[f"{title.get_text()}"] = data[i].get_text()
-        if not dry_run:
-            start_index = action_data.find(
-                "Your order reference number is: "
-            ) + len("Your order reference number is: ")
-            end_index = action_data.find("</div>", start_index)
-            order_number = action_data[start_index:end_index]
-        else:
-            start_index = action_data.find('id="') + len('id="')
-            end_index = action_data.find('" style=', start_index)
-            order_number = action_data[start_index:end_index]
-        order_confirmation["orderid"] = order_number
-    else:
-        order_confirmation["actiondata"] = action_data
-    order_confirmation["errcode"] = order_data.find("errcode").text.strip()
-    self.order_confirmation = order_confirmation
-    
+   
 
-def get_orders(ft_session, account):
+def get_orders(self, account):
     """
     Retrieves existing order data for a given account.
 
@@ -406,61 +220,35 @@ def get_orders(ft_session, account):
         list: A list of dictionaries, each containing details about an order.
     """
 
+   # Post request to retrieve the order data
+    response = self.ft_session.get(url=urls.order_list(account))
+    if response.status_code != 200 and response.json()["error"] != "":
+        raise Exception(f"Failed to get order list. API returned the following error: {response.json()['error']}")
+    return response.json()
+
+def cancel_order(self, order_id):
+    """
+    Cancels an existing order.
+
+    Args:
+        order_id (str): The order ID to cancel.
+
+    Returns:
+        dict: A dictionary containing the response data.
+    """
+
     # Data dictionary to send with the request
     data = {
-        "accountId": account,
+        "order_id": order_id,
     }
 
-    # Post request to retrieve the order data
-    response = ft_session.post(
-        url=urls.order_list(), headers=urls.session_headers(), data=data
-    ).text
+    # Post request to cancel the order
+    response = self.ft_session.post(
+        url=urls.cancel_order(), headers=urls.session_headers(), data=data
+    )
 
-    # Parse the response using BeautifulSoup
-    soup = BeautifulSoup(response, "html.parser")
+    if response.status_code != 200 or response.json()["error"] != "":
+        raise Exception(f"Failed to cancel order. API returned status code: {response.json()["error"]}")
 
-    # Find the table containing orders
-    table = soup.find("table", class_="tablesorter")
-    if not table:
-        return []
-
-    rows = table.find_all("tr")[1:]  # skip the header row
-
-    orders = []
-    for row in rows:
-        try:
-            cells = row.find_all("td")
-            tooltip_content = row.find("a", {"class": "info"}).get("onmouseover")
-            tooltip_soup = BeautifulSoup(
-                tooltip_content.split("tooltip.show(")[1].strip("');"), "html.parser"
-            )
-            order_ref = tooltip_soup.find(text=lambda text: "Order Ref" in text)
-            order_ref_number = order_ref.split("#: ")[1] if order_ref else None
-            status = cells[8]
-            # print(status)
-            sub_status = status.find("strong")
-            # print(sub_status)
-            sub_status = sub_status.get_text(strip=True)
-            # print(sub_status)
-            status = (
-                status.find("strong").get_text(strip=True)
-                if status.find("strong")
-                else status.get_text(strip=True)
-            )
-            order = {
-                "Date/Time": cells[0].get_text(strip=True),
-                "Reference": order_ref_number,
-                "Transaction": cells[1].get_text(strip=True),
-                "Quantity": int(cells[2].get_text(strip=True)),
-                "Symbol": cells[3].get_text(strip=True),
-                "Type": cells[4].get_text(strip=True),
-                "Price": float(cells[5].get_text(strip=True)),
-                "Duration": cells[6].get_text(strip=True),
-                "Instr.": cells[7].get_text(strip=True),
-                "Status": status,
-            }
-            orders.append(order)
-        except Exception as e:
-            print(f"Error parsing order: {e}")
-
-    return orders
+    # Return the response message
+    return response.json()
