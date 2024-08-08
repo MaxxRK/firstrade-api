@@ -76,7 +76,6 @@ class Order:
 
     def __init__(self, ft_session: FTSession):
         self.ft_session = ft_session
-        self.order_confirmation = {}
 
     def place_order(
         self,
@@ -86,9 +85,10 @@ class Order:
         order_type: OrderType,
         quantity: int,
         duration: Duration,
-        price: float=0.00,
-        dry_run: bool=True,
-        notional: bool=False,
+        price: float = 0.00,
+        stop_price: float = None,
+        dry_run: bool = True,
+        notional: bool = False,
         order_instruction: OrderInstructions = "0",
     ):
         """
@@ -126,14 +126,20 @@ class Order:
             "instructions": order_instruction,
             "account": account,
             "price_type": price_type,
-            "limit_price": price if price_type == PriceType.LIMIT else "0",
+            "limit_price": "0",
         }
         if notional:
             data["dollar_ammount"] = price
+        if price_type in [PriceType.LIMIT, PriceType.STOP_LIMIT]:
+            data["limit_price"] = price
+        if price_type in [PriceType.STOP, PriceType.STOP_LIMIT]:
+            data["stop_price"] = stop_price
         response = self.ft_session.post(url=urls.order(), data=data)
         if response.status_code != 200 or response.json()["error"] != "":
             raise Exception(
-                f"Failed to preview order for {symbol}. API returned the following error: {response.json()['error']}"
+                f"Failed to preview order for {symbol}. " 
+                f"API returned the following error: {response.json()['error']} "
+                f"With the following message: {response.json()['message']} "
             )
         preview_data = response.json()
         if dry_run:
@@ -143,33 +149,27 @@ class Order:
         response = self.ft_session.post(url=urls.order(), data=data)
         if response.status_code != 200 or response.json()["error"] != "":
             raise Exception(
-                f"Failed to place order for {symbol}. API returned the following error: {response.json()['error']}"
+                f"Failed to preview order for {symbol}. " 
+                f"API returned the following error: {response.json()['error']} "
+                f"With the following message: {response.json()['message']} "
             )
-        self.order_confirmation = response.json()
+        return response.json()
 
 def place_option_order(
         self,
-        opt_choice,
-        account,
-        trans_type,
-        contracts,
-        symbol,
-        exp_date,
-        strike: float,
-        call_put_type: OptionType,
+        account: str,
+        symbol: str,
         price_type: PriceType,
         order_type: OrderType,
-        quantity,
+        quantity: int,
         duration: Duration,
         stop_price: float = None,
-        price=0.00,
-        dry_run=True,
-        notional=False,
+        price: float = 0.00,
+        dry_run: bool = True,
         order_instruction: OrderInstructions = "0",
 ):
     
-    if price_type == PriceType.MARKET:
-            price = ""
+    
     if order_instruction == OrderInstructions.AON and price_type != PriceType.LIMIT:
         raise ValueError("AON orders must be a limit order.")
     if order_instruction == OrderInstructions.AON and quantity <= 100:
@@ -186,7 +186,11 @@ def place_option_order(
         "account": account,
         "price_type": price_type,
     }
-    
+    if price_type in [PriceType.LIMIT, PriceType.STOP_LIMIT]:
+            data["limit_price"] = price
+    if price_type in [PriceType.STOP, PriceType.STOP_LIMIT]:
+        data["stop_price"] = stop_price
+
     response = self.ft_session.post(url=urls.option_order(), data=data)
     if response.status_code != 200 or response.json()["error"] != "":
         raise Exception(
@@ -204,7 +208,7 @@ def place_option_order(
             f"API returned the following error: {response.json()['error']} "
             f"With the following message: {response.json()['message']} "
         )
-    self.order_confirmation = response.json()
+    return response.json()
 
    
 
