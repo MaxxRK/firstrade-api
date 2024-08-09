@@ -84,7 +84,6 @@ class FTSession:
                 raise Exception(f"Login failed api reports the following error(s): {self.login_json['error']}.")
         self.session.headers["ftat"] = self.login_json["ftat"]
         self.session.headers["sid"] = self.login_json["sid"]
-        print(self.login_json)
         self._save_cookies()
     
     def delete_cookies(self):    
@@ -161,7 +160,6 @@ class FTSession:
                             "t_token": self.t_token, 
                         }
             response = self.session.post(urls.request_code(), data=data)
-        print(response.json())
         self.login_json = response.json()
         if self.login_json["error"] == "":
             self.session.headers["sid"]= self.login_json["verificationSid"]
