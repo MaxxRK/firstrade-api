@@ -82,3 +82,78 @@ class SymbolQuote:
         self.realtime = response.json()["result"]["realtime"]
         self.nls = response.json()["result"]["nls"]
         self.shares = response.json()["result"]["shares"]
+        
+
+class OptionQuote:
+    """
+    Data class representing an option quote for a given symbol.
+
+    Attributes:
+        ft_session (FTSession): The session object used for making HTTP requests to Firstrade.
+        symbol (str): The symbol for which the option quote information is retrieved.
+        option_dates (dict): A dict of expiration dates for options on the given symbol.
+    """
+
+    def __init__(self, ft_session: FTSession, symbol: str):
+        """
+        Initializes a new instance of the OptionQuote class.
+
+        Args:
+            ft_session (FTSession):
+                The session object used for making HTTP requests to Firstrade.
+            symbol (str): The symbol for which the option quote information is retrieved.
+        """
+        self.ft_session = ft_session
+        self.symbol = symbol
+        self.option_dates = self.get_option_dates(symbol)
+        
+    def get_option_dates(self, symbol: str):
+        """
+        Retrieves the expiration dates for options on a given symbol.
+
+        Args:
+            symbol (str): The symbol for which the expiration dates are retrieved.
+
+        Returns:
+            list: A list of expiration dates for options on the given symbol.
+        """
+        response = self.ft_session.get(url=urls.option_dates(symbol))
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise Exception(f"Failed to get option dates for {symbol}. API returned the following error: {response.json()['error']}")
+        return response.json()
+    
+    def get_option_quote(self, symbol: str, date: str):
+        """
+        Retrieves the quote for a given option symbol.
+
+        Args:
+            symbol (str): The symbol for which the quote is retrieved.
+
+        Returns:
+            dict: A dictionary containing the quote for the given option symbol.
+        """
+        response = self.ft_session.get(url=urls.option_quotes(symbol, date))
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise Exception(f"Failed to get option quote for {symbol}. API returned the following error: {response.json()['error']}")
+        return response.json()
+    
+    def get_greek_options(self, symbol: str, exp_date: str):
+        """
+        Retrieves the greeks for options on a given symbol.
+
+        Args:
+            symbol (str): The symbol for which the greeks are retrieved.
+
+        Returns:
+            dict: A dictionary containing the greeks for options on the given symbol.
+        """
+        data = {
+            "type": "chain",
+            "chains_range": "A",
+            "root_symbol": symbol,
+            "exp_date": exp_date,
+        }
+        response = self.ft_session.post(url=urls.greek_options(), data=data)
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise Exception(f"Failed to get option greeks for {symbol}. API returned the following error: {response.json()['error']}")
+        return response.json()

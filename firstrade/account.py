@@ -17,7 +17,8 @@ class FTSession:
             username (str): Firstrade login username.
             password (str): Firstrade login password.
             pin (str): Firstrade login pin.
-            persistent_session (bool, optional): Whether the user wants to save the session cookies.
+            email (str, optional): Firstrade MFA email.
+            phone (str, optional): Firstrade MFA phone number.
             profile_path (str, optional): The path where the user wants to save the cookie pkl file.
         """
         self.username = username
@@ -128,7 +129,7 @@ class FTSession:
             pickle.dump(ftat, f)
         
     def _mask_email(self, email):
-        """Masks the email for security purposes."""
+        """Masks the email for use in the api."""
         local, domain = email.split('@')
         masked_local = local[0] + '*' * 4
         domain_name, tld = domain.split('.')
@@ -161,9 +162,13 @@ class FTSession:
                         }
             response = self.session.post(urls.request_code(), data=data)
         self.login_json = response.json()
+        print(self.login_json)
         if self.login_json["error"] == "":
+            if self.pin is not None:
+                self.session.headers["sid"]= self.login_json["sid"]
+                return False
             self.session.headers["sid"]= self.login_json["verificationSid"]
-            return False if self.pin is not None else True
+            return True
 
 
     def __getattr__(self, name):
@@ -234,4 +239,63 @@ class FTAccountData:
         response = self.session.get(urls.account_positions(account))
         if response.status_code != 200 or response.json()["error"] != "":
             raise Exception(f"Failed to get account positions. API returned the following error: {response.json()['error']}")
+        return response.json()
+    
+    def get_account_history(self, account):
+        """Gets account history for a given account.
+
+        Args:
+            account (str): Account number of the account you want to get history for.
+
+        Returns:
+            dict: Dict of the response from the API.
+        """
+        response = self.session.get(urls.account_history(account))
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise Exception(f"Failed to get account history. API returned the following error: {response.json()['error']}")
+        return response.json()
+    
+    def get_orders(self, account):
+        """
+        Retrieves existing order data for a given account.
+
+        Args:
+            ft_session (FTSession): The session object used for making HTTP requests to Firstrade.
+            account (str): Account number of the account to retrieve orders for.
+
+        Returns:
+            list: A list of dictionaries, each containing details about an order.
+        """
+
+    # Post request to retrieve the order data
+        response = self.session.get(url=urls.order_list(account))
+        if response.status_code != 200 and response.json()["error"] != "":
+            raise Exception(f"Failed to get order list. API returned the following error: {response.json()['error']}")
+        return response.json()
+
+    def cancel_order(self, order_id):
+        """
+        Cancels an existing order.
+
+        Args:
+            order_id (str): The order ID to cancel.
+
+        Returns:
+            dict: A dictionary containing the response data.
+        """
+
+        # Data dictionary to send with the request
+        data = {
+            "order_id": order_id,
+        }
+
+        # Post request to cancel the order
+        response = self.session.post(
+            url=urls.cancel_order(), data=data
+        )
+
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise Exception(f"Failed to cancel order. API returned status code: {response.json()["error"]}")
+
+        # Return the response message
         return response.json()

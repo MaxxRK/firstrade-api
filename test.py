@@ -1,8 +1,12 @@
 from firstrade import account, order, symbols
-from firstrade.order import get_orders
 
 # Create a session
-ft_ss = account.FTSession(username="", password="", pin="")
+ft_ss = account.FTSession(username="", password="", pin="") #Can also replace pin with phone or email
+
+need_code = ft_ss.login()
+if need_code:
+    code = input("Please enter the pin sent to your email/phone: ")
+    success = ft_ss.login_two(code)
 
 # Get account data
 ft_accounts = account.FTAccountData(ft_ss)
@@ -19,9 +23,8 @@ print(ft_accounts.account_numbers[0])
 print(ft_accounts.account_balances)
 
 # Get quote for INTC
-quote = symbols.SymbolQuote(ft_ss, "INTC")
+quote = symbols.SymbolQuote(ft_ss, ft_accounts.account_numbers[0], "INTC")
 print(f"Symbol: {quote.symbol}")
-print(f"Underlying Symbol: {quote.underlying_symbol}")
 print(f"Tick: {quote.tick}")
 print(f"Exchange: {quote.exchange}")
 print(f"Bid: {quote.bid}")
@@ -38,51 +41,69 @@ print(f"High: {quote.high}")
 print(f"Low: {quote.low}")
 print(f"Change Color: {quote.change_color}")
 print(f"Volume: {quote.volume}")
-print(f"Bid x Ask: {quote.bidxask}")
 print(f"Quote Time: {quote.quote_time}")
 print(f"Last Trade Time: {quote.last_trade_time}")
-print(f"Real Time: {quote.real_time}")
-print(f"Fractional: {quote.fractional}")
-print(f"Error Code: {quote.err_code}")
+print(f"Real Time: {quote.realtime}")
+print(f"Fractional: {quote.is_fractional}")
 print(f"Company Name: {quote.company_name}")
 
 # Get positions and print them out for an account.
 positions = ft_accounts.get_positions(account=ft_accounts.account_numbers[1])
-for key in ft_accounts.securities_held:
+for item in positions["items"]:
     print(
-        f"Quantity {ft_accounts.securities_held[key]['quantity']} of security {key} held in account {ft_accounts.account_numbers[1]}"
+        f"Quantity {item["quantity"]} of security {item["symbol"]} held in account {ft_accounts.account_numbers[1]}"
     )
+
+# Get account history (past 200)
+history = ft_accounts.get_account_history(account=ft_accounts.account_numbers[0])
+for item in history["items"]:
+    print(f"Transaction: {item["symbol"]} on {item["report_date"]} for {item["amount"]}.")
+
 
 # Create an order object.
 ft_order = order.Order(ft_ss)
 
-# Place order and print out order confirmation data.
-ft_order.place_order(
+# Place dry run order and print out order confirmation data.
+order_conf = ft_order.place_order(
     ft_accounts.account_numbers[0],
     symbol="INTC",
     price_type=order.PriceType.MARKET,
     order_type=order.OrderType.BUY,
-    quantity=1,
     duration=order.Duration.DAY,
+    quantity=1,
     dry_run=True,
 )
 
-# Print Order data Dict
-print(ft_order.order_confirmation)
-
-# Check if order was successful
-if ft_order.order_confirmation["success"] == "Yes":
-    print("Order placed successfully.")
-    # Print Order ID
-    print(f"Order ID: {ft_order.order_confirmation['orderid']}.")
+if "order_id" not in order_conf["result"]:
+    print("Dry run complete.")
+    print(order_conf["result"])
 else:
-    print("Failed to place order.")
-    # Print errormessage
-    print(ft_order.order_confirmation["actiondata"])
+    print("Order placed successfully.")
+    print(f"Order ID: {order_conf["result"]["order_id"]}.")
+    print(f"Order State: {order_conf["result"]["state"]}.")
+
+# Cancel placed order
+#cancel = ft_accounts.cancel_order(order_conf['result']["order_id"])
+#if cancel["result"]["result"] == "success":
+    #print("Order cancelled successfully.")
+#print(cancel)
 
 # Check orders
-current_orders = get_orders(ft_ss, ft_accounts.account_numbers[0])
-print(current_orders)
+recent_orders = ft_accounts.get_orders(ft_accounts.account_numbers[0])
+print(recent_orders)
+
+#Get option dates
+option_first = symbols.OptionQuote(ft_ss, "INTC")
+option_first.option_dates
+for item in option_first.option_dates["items"]:
+    print(f"Expiration Date: {item["exp_date"]} Days Left: {item["day_left"]} Expiration Type: {item["exp_type"]}")
+
+# Get option quote
+option_quote = option_first.get_option_quote("INTC", option_first.option_dates["items"][0]["exp_date"])
+print(option_quote)
+
+# Get option greeks
+option_greeks = option_first.get_greek_options("INTC", option_first.option_dates["items"][0]["exp_date"])
 
 # Delete cookies
 ft_ss.delete_cookies()

@@ -40,17 +40,21 @@ def order():
 def order_list(account):
     return f"https://api3x.firstrade.com/private/order_status?account={account}"
 
+def account_history(account):
+    return f"https://api3x.firstrade.com/private/account_history?range=ytd&page=1&account={account}&per_page=200"
+
 def cancel_order():
     return "https://api3x.firstrade.com/private/cancel_order"
 
 def option_dates(symbol):
     return f"https://api3x.firstrade.com/public/oc?m=get_exp_dates&root_symbol={symbol}"
 
+def option_quotes(symbol, date):
+    return f"https://api3x.firstrade.com/public/oc?m=get_oc&root_symbol={symbol}&exp_date={date}&chains_range=A"
+
 def greek_options():
     return "https://api3x.firstrade.com/private/greekoptions/analytical"
 
-def option_quote(symbol, date):
-    return f"https://api3x.firstrade.com/public/oc?m=get_oc&root_symbol={symbol}&exp_date={date}&chains_range=A"
 
 def option_order():
     return "https://api3x.firstrade.com/private/option_order"
