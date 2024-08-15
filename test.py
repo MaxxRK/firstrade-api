@@ -1,8 +1,8 @@
 from firstrade import account, order, symbols
+from firstrade.exceptions import PreviewOrderError
 
 # Create a session
-ft_ss = account.FTSession(username="", password="", pin="") #Can also replace pin with phone or email
-
+ft_ss = account.FTSession(username="", password="", mfa_secret = "", profile_path="")
 need_code = ft_ss.login()
 if need_code:
     code = input("Please enter the pin sent to your email/phone: ")
@@ -93,17 +93,34 @@ recent_orders = ft_accounts.get_orders(ft_accounts.account_numbers[0])
 print(recent_orders)
 
 #Get option dates
-option_first = symbols.OptionQuote(ft_ss, "INTC")
+option_first = symbols.OptionQuote(ft_ss, "M")
 option_first.option_dates
 for item in option_first.option_dates["items"]:
     print(f"Expiration Date: {item["exp_date"]} Days Left: {item["day_left"]} Expiration Type: {item["exp_type"]}")
 
 # Get option quote
-option_quote = option_first.get_option_quote("INTC", option_first.option_dates["items"][0]["exp_date"])
+option_quote = option_first.get_option_quote("M", option_first.option_dates["items"][0]["exp_date"])
 print(option_quote)
 
 # Get option greeks
-option_greeks = option_first.get_greek_options("INTC", option_first.option_dates["items"][0]["exp_date"])
+option_greeks = option_first.get_greek_options("M", option_first.option_dates["items"][0]["exp_date"])
+#print(option_greeks)
+
+print(f"Placing dry option order for {option_quote["items"][0]["opt_symbol"]} with a price of {option_quote["items"][0]["ask"]}.")
+print("Symbol readable ticker 'M'")
+# Place dry option order
+try:
+    option_order = ft_order.place_option_order(
+        account=ft_accounts.account_numbers[0],
+        option_symbol=option_quote["items"][0]["opt_symbol"],
+        order_type=order.OrderType.BUY_OPTION,
+        price_type=order.PriceType.MARKET,
+        duration=order.Duration.DAY,
+        contracts=1,
+        dry_run=True,
+    )
+except PreviewOrderError as e:
+    print(e)
 
 # Delete cookies
 ft_ss.delete_cookies()

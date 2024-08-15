@@ -3,10 +3,6 @@ def login():
     return "https://api3x.firstrade.com/sess/login"
 
 
-def pin():
-    return "https://api3x.firstrade.com/sess/verify_pin"
-
-
 def request_code():
     return "https://api3x.firstrade.com/sess/request_code"
 

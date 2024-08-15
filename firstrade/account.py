@@ -1,15 +1,53 @@
 import os
 import pickle
+import pyotp
 
 import requests
 
 from firstrade import urls
+from firstrade.exceptions import LoginRequestError, LoginResponseError, AccountRequestError, AccountResponseError
 
 
 class FTSession:
 
-    """Class creating a session for Firstrade."""
-    def __init__(self, username, password, pin=None, email=None, phone=None, profile_path=None):
+    """
+    Class creating a session for Firstrade.
+
+    This class handles the creation and management of a session for logging into the Firstrade platform.
+    It supports multi-factor authentication (MFA) and can save session cookies for persistent logins.
+
+    Attributes:
+        username (str): Firstrade login username.
+        password (str): Firstrade login password.
+        pin (str): Firstrade login pin.
+        email (str, optional): Firstrade MFA email.
+        phone (str, optional): Firstrade MFA phone number.
+        mfa_secret (str, optional): Secret key for generating MFA codes.
+        profile_path (str, optional): The path where the user wants to save the cookie pkl file.
+        t_token (str, optional): Token used for MFA.
+        otp_options (dict, optional): Options for OTP (One-Time Password) if MFA is enabled.
+        login_json (dict, optional): JSON response from the login request.
+        session (requests.Session): The requests session object used for making HTTP requests.
+
+    Methods:
+        __init__(username, password, pin=None, email=None, phone=None, mfa_secret=None, profile_path=None):
+            Initializes a new instance of the FTSession class.
+        login():
+            Validates and logs into the Firstrade platform.
+        login_two(code):
+            Finishes the login process to the Firstrade platform. When using email or phone mfa.
+        delete_cookies():
+            Deletes the session cookies.
+        _load_cookies():
+            Checks if session cookies were saved and loads them.
+        _save_cookies():
+            Saves session cookies to a file.
+        _mask_email(email):
+            Masks the email for use in the API.
+        _handle_mfa():
+            Handles multi-factor authentication.
+    """
+    def __init__(self, username, password, pin=None, email=None, phone=None, mfa_secret=None, profile_path=None):
         """
         Initializes a new instance of the FTSession class.
 
@@ -26,6 +64,7 @@ class FTSession:
         self.pin = pin
         self.email = self._mask_email(email) if email is not None else None
         self.phone = phone
+        self.mfa_secret = mfa_secret
         self.profile_path = profile_path
         self.t_token = None
         self.otp_options = None
@@ -33,13 +72,20 @@ class FTSession:
         self.session = requests.Session()
 
     def login(self):
-        """Method to validate and login to the Firstrade platform."""
+        """
+        Validates and logs into the Firstrade platform.
+
+        This method sets up the session headers, loads cookies if available, and performs the login request.
+        It handles multi-factor authentication (MFA) if required.
+
+        Raises:
+            LoginRequestError: If the login request fails with a non-200 status code.
+            LoginResponseError: If the login response contains an error message.
+        """
         self.session.headers = urls.session_headers()
         ftat = self._load_cookies()
         if ftat != "":
             self.session.headers["ftat"] = ftat
-            
-    
         response = self.session.get(url="https://api3x.firstrade.com/", timeout=10)
         self.session.headers["access-token"] = urls.access_token()
         
@@ -57,13 +103,16 @@ class FTSession:
             self.session.headers["sid"] = self.login_json["sid"]
             return False
         self.t_token = self.login_json.get("t_token")
-        self.otp_options = self.login_json.get("otp")
-        if self.login_json["error"] != "" or response.status_code != 200:
-            raise Exception(f"Login failed api reports the following error(s). {self.login_json['error']}")
-        
+        if self.mfa_secret is None:
+            self.otp_options = self.login_json.get("otp")
+        if response.status_code != 200:
+            raise LoginRequestError(response.status_code)
+        if self.login_json["error"] != "":
+            raise LoginResponseError(self.login_json['error'])
+            
         need_code = self._handle_mfa()
         if self.login_json["error"]!= "":
-                raise Exception(f"Login failed api reports the following error(s): {self.login_json['error']}.")
+                raise LoginResponseError(self.login_json['error'])
         if need_code:
             return True
         self.session.headers["ftat"] = self.login_json["ftat"]
@@ -82,7 +131,7 @@ class FTSession:
         response = self.session.post(urls.verify_pin(), data=data)
         self.login_json = response.json()
         if self.login_json["error"]!= "":
-                raise Exception(f"Login failed api reports the following error(s): {self.login_json['error']}.")
+                raise LoginResponseError(self.login_json['error'])
         self.session.headers["ftat"] = self.login_json["ftat"]
         self.session.headers["sid"] = self.login_json["sid"]
         self._save_cookies()
@@ -100,7 +149,7 @@ class FTSession:
         Checks if session cookies were saved.
 
         Returns:
-            Dict: Dictionary of cookies. Nom Nom
+            str: The saved session token.
         """
 
         ftat = ""
@@ -129,7 +178,15 @@ class FTSession:
             pickle.dump(ftat, f)
         
     def _mask_email(self, email):
-        """Masks the email for use in the api."""
+        """
+        Masks the email for use in the API.
+
+        Args:
+            email (str): The email address to be masked.
+
+        Returns:
+            str: The masked email address.
+        """
         local, domain = email.split('@')
         masked_local = local[0] + '*' * 4
         domain_name, tld = domain.split('.')
@@ -137,8 +194,16 @@ class FTSession:
         return f"{masked_local}@{masked_domain}.{tld}"
     
     def _handle_mfa(self):
-        """Handles multi-factor authentication."""
-        if "mfa" in self.login_json and self.pin is not None:
+        """
+        Handles multi-factor authentication.
+
+        This method processes the MFA requirements based on the login response and user-provided details.
+
+        Raises:
+            LoginRequestError: If the MFA request fails with a non-200 status code.
+            LoginResponseError: If the MFA response contains an error message.
+        """
+        if not self.login_json["mfa"] and self.pin is not None:
             data = {
                 "pin": self.pin,
                 "remember_for": "30",
@@ -146,7 +211,7 @@ class FTSession:
             }
             response = self.session.post(urls.pin(), data=data)
             self.login_json = response.json()
-        elif "mfa" in self.login_json and (self.email is not None or self.phone is not None):
+        elif not self.login_json["mfa"] and (self.email is not None or self.phone is not None):
             for item in self.otp_options:
                 if item["channel"] == "sms" and self.phone is not None:
                     if self.phone in item["recipientMask"]:
@@ -161,14 +226,23 @@ class FTSession:
                             "t_token": self.t_token, 
                         }
             response = self.session.post(urls.request_code(), data=data)
+        elif self.login_json["mfa"] and self.mfa_secret is not None:
+            mfa_otp = pyotp.TOTP(self.mfa_secret).now()
+            data = {
+                "mfaCode": mfa_otp,
+                "remember_for": "30",
+                "t_token": self.t_token,
+            }
+            response = self.session.post(urls.verify_pin(), data=data)
         self.login_json = response.json()
         print(self.login_json)
         if self.login_json["error"] == "":
-            if self.pin is not None:
-                self.session.headers["sid"]= self.login_json["sid"]
+            if self.pin or self.mfa_secret is not None:
+                self.session.headers["sid"] = self.login_json["sid"]
                 return False
-            self.session.headers["sid"]= self.login_json["verificationSid"]
-            return True
+            else:
+                self.session.headers["sid"]= self.login_json["verificationSid"]
+                return True
 
 
     def __getattr__(self, name):
@@ -202,11 +276,13 @@ class FTAccountData:
         self.account_balances = []
         response = self.session.get(url=urls.user_info())
         if response.status_code != 200:
-            raise Exception("Failed to get user info.")
+            raise AccountRequestError(response.status_code)
         self.user_info = response.json()
         response = self.session.get(urls.account_list())
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise Exception(f"Failed to get account list. API returned the following error: {response.json()['error']}")
+        if response.status_code != 200:
+            raise AccountRequestError(response.status_code)
+        if response.json()["error"] != "":
+            raise AccountResponseError(response.json()['error'])
         self.all_accounts = response.json()
         for item in self.all_accounts["items"]:
             self.account_numbers.append(item["account"])
@@ -222,8 +298,10 @@ class FTAccountData:
             dict: Dict of the response from the API.
         """
         response = self.session.get(urls.account_balances(account))
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise Exception(f"Failed to get account balances. API returned the following error: {response.json()['error']}")
+        if response.status_code != 200:
+            raise AccountRequestError(response.status_code)
+        if response.json()["error"] != "":
+            raise AccountResponseError(response.json()['error'])
         return response.json()
 
     def get_positions(self, account):
@@ -237,8 +315,10 @@ class FTAccountData:
         """
         
         response = self.session.get(urls.account_positions(account))
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise Exception(f"Failed to get account positions. API returned the following error: {response.json()['error']}")
+        if response.status_code != 200:
+            raise AccountRequestError(response.status_code)
+        if response.json()["error"] != "":
+            raise AccountResponseError(response.json()['error'])
         return response.json()
     
     def get_account_history(self, account):
@@ -251,8 +331,10 @@ class FTAccountData:
             dict: Dict of the response from the API.
         """
         response = self.session.get(urls.account_history(account))
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise Exception(f"Failed to get account history. API returned the following error: {response.json()['error']}")
+        if response.status_code != 200:
+            raise AccountRequestError(response.status_code)
+        if response.json()["error"] != "":
+            raise AccountResponseError(response.json()['error'])
         return response.json()
     
     def get_orders(self, account):
@@ -267,10 +349,11 @@ class FTAccountData:
             list: A list of dictionaries, each containing details about an order.
         """
 
-    # Post request to retrieve the order data
         response = self.session.get(url=urls.order_list(account))
-        if response.status_code != 200 and response.json()["error"] != "":
-            raise Exception(f"Failed to get order list. API returned the following error: {response.json()['error']}")
+        if response.status_code != 200:
+            raise AccountRequestError(response.status_code)
+        if response.json()["error"] != "":
+            raise AccountResponseError(response.json()['error'])
         return response.json()
 
     def cancel_order(self, order_id):
@@ -284,18 +367,16 @@ class FTAccountData:
             dict: A dictionary containing the response data.
         """
 
-        # Data dictionary to send with the request
         data = {
             "order_id": order_id,
         }
 
-        # Post request to cancel the order
         response = self.session.post(
             url=urls.cancel_order(), data=data
         )
 
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise Exception(f"Failed to cancel order. API returned status code: {response.json()["error"]}")
-
-        # Return the response message
+        if response.status_code != 200:
+            raise AccountRequestError(response.status_code)
+        if response.json()["error"] != "":
+            raise AccountResponseError(response.json()['error'])
         return response.json()

@@ -1,5 +1,6 @@
 from firstrade import urls
 from firstrade.account import FTSession
+from firstrade.exceptions import QuoteRequestError, QuoteResponseError
 
 
 class SymbolQuote:
@@ -44,15 +45,20 @@ class SymbolQuote:
         Initializes a new instance of the SymbolQuote class.
 
         Args:
-            ft_session (FTSession):
-                The session object used for making HTTP requests to Firstrade.
+            ft_session (FTSession): The session object used for making HTTP requests to Firstrade.
             account (str): The account number for which the quote information is retrieved.
             symbol (str): The symbol for which the quote information is retrieved.
+
+        Raises:
+            QuoteRequestError: If the quote request fails with a non-200 status code.
+            QuoteResponseError: If the quote response contains an error message.
         """
         self.ft_session = ft_session
         response = self.ft_session.get(url=urls.quote(account, symbol))
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise Exception(f"Failed to get quote for {symbol}. API returned the following error: {response.json()['error']}")
+        if response.status_code != 200:
+            raise QuoteRequestError(response.status_code)
+        if response.json().get("error", "") != "":
+            raise QuoteResponseError(symbol, response.json()["error"])
         self.symbol = response.json()["result"]["symbol"]
         self.sec_type = response.json()["result"]["sec_type"]
         self.tick = response.json()["result"]["tick"]
@@ -115,11 +121,17 @@ class OptionQuote:
             symbol (str): The symbol for which the expiration dates are retrieved.
 
         Returns:
-            list: A list of expiration dates for options on the given symbol.
+            dict: A dict of expiration dates and other information for options on the given symbol.
+
+        Raises:
+            QuoteRequestError: If the request for option dates fails with a non-200 status code.
+            QuoteResponseError: If the response for option dates contains an error message.
         """
         response = self.ft_session.get(url=urls.option_dates(symbol))
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise Exception(f"Failed to get option dates for {symbol}. API returned the following error: {response.json()['error']}")
+        if response.status_code != 200:
+            raise QuoteRequestError(response.status_code)
+        if response.json().get("error", "") != "":
+            raise QuoteResponseError(symbol, response.json()["error"])
         return response.json()
     
     def get_option_quote(self, symbol: str, date: str):
@@ -130,11 +142,17 @@ class OptionQuote:
             symbol (str): The symbol for which the quote is retrieved.
 
         Returns:
-            dict: A dictionary containing the quote for the given option symbol.
+            dict: A dictionary containing the quote  and other information for the given option symbol.
+
+        Raises:
+            QuoteRequestError: If the request for the option quote fails with a non-200 status code.
+            QuoteResponseError: If the response for the option quote contains an error message.
         """
         response = self.ft_session.get(url=urls.option_quotes(symbol, date))
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise Exception(f"Failed to get option quote for {symbol}. API returned the following error: {response.json()['error']}")
+        if response.status_code != 200:
+            raise QuoteRequestError(response.status_code)
+        if response.json().get("error", "") != "":
+            raise QuoteResponseError(symbol, response.json()["error"])
         return response.json()
     
     def get_greek_options(self, symbol: str, exp_date: str):
@@ -143,9 +161,14 @@ class OptionQuote:
 
         Args:
             symbol (str): The symbol for which the greeks are retrieved.
+            exp_date (str): The expiration date of the options.
 
         Returns:
-            dict: A dictionary containing the greeks for options on the given symbol.
+            dict: A dictionary containing the greeks for the options on the given symbol.
+
+        Raises:
+            QuoteRequestError: If the request for the greeks fails with a non-200 status code.
+            QuoteResponseError: If the response for the greeks contains an error message.
         """
         data = {
             "type": "chain",
@@ -154,6 +177,8 @@ class OptionQuote:
             "exp_date": exp_date,
         }
         response = self.ft_session.post(url=urls.greek_options(), data=data)
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise Exception(f"Failed to get option greeks for {symbol}. API returned the following error: {response.json()['error']}")
+        if response.status_code != 200:
+            raise QuoteRequestError(response.status_code)
+        if response.json().get("error", "") != "":
+            raise QuoteResponseError(symbol, response.json()["error"])
         return response.json()
