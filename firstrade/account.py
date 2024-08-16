@@ -209,7 +209,7 @@ class FTSession:
                 "remember_for": "30",
                 "t_token": self.t_token, 
             }
-            response = self.session.post(urls.pin(), data=data)
+            response = self.session.post(urls.verify_pin(), data=data)
             self.login_json = response.json()
         elif not self.login_json["mfa"] and (self.email is not None or self.phone is not None):
             for item in self.otp_options:
@@ -272,8 +272,7 @@ class FTAccountData:
         self.session = session
         self.all_accounts = []
         self.account_numbers = []
-        self.account_statuses = []
-        self.account_balances = []
+        self.account_balances = {}
         response = self.session.get(url=urls.user_info())
         if response.status_code != 200:
             raise AccountRequestError(response.status_code)
@@ -286,7 +285,7 @@ class FTAccountData:
         self.all_accounts = response.json()
         for item in self.all_accounts["items"]:
             self.account_numbers.append(item["account"])
-            self.account_balances.append(float(item["total_value"]))
+            self.account_balances[item['account']] = item["total_value"]
 
     def get_account_balances(self, account):
         """Gets account balances for a given account.
