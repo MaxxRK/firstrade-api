@@ -5,7 +5,7 @@ import pyotp
 import requests
 
 from firstrade import urls
-from firstrade.exceptions import LoginRequestError, LoginResponseError, AccountRequestError, AccountResponseError
+from firstrade.exceptions import LoginRequestError, LoginResponseError, AccountResponseError
 
 
 class FTSession:
@@ -108,8 +108,7 @@ class FTSession:
         if response.status_code != 200:
             raise LoginRequestError(response.status_code)
         if self.login_json["error"] != "":
-            raise LoginResponseError(self.login_json['error'])
-            
+            raise LoginResponseError(self.login_json['error'])    
         need_code = self._handle_mfa()
         if self.login_json["error"]!= "":
                 raise LoginResponseError(self.login_json['error'])
@@ -235,7 +234,6 @@ class FTSession:
             }
             response = self.session.post(urls.verify_pin(), data=data)
         self.login_json = response.json()
-        print(self.login_json)
         if self.login_json["error"] == "":
             if self.pin or self.mfa_secret is not None:
                 self.session.headers["sid"] = self.login_json["sid"]

@@ -1,12 +1,11 @@
 from firstrade import account, order, symbols
-from firstrade.exceptions import PreviewOrderError
 
 # Create a session
-ft_ss = account.FTSession(username="", password="", mfa_secret = "", profile_path="")
+ft_ss = account.FTSession(username="", password="", email = "", profile_path="")
 need_code = ft_ss.login()
 if need_code:
     code = input("Please enter the pin sent to your email/phone: ")
-    success = ft_ss.login_two(code)
+    ft_ss.login_two(code)
 
 # Get account data
 ft_accounts = account.FTAccountData(ft_ss)
@@ -49,6 +48,7 @@ print(f"Company Name: {quote.company_name}")
 
 # Get positions and print them out for an account.
 positions = ft_accounts.get_positions(account=ft_accounts.account_numbers[1])
+print(positions)
 for item in positions["items"]:
     print(
         f"Quantity {item["quantity"]} of security {item["symbol"]} held in account {ft_accounts.account_numbers[1]}"
@@ -67,12 +67,14 @@ ft_order = order.Order(ft_ss)
 order_conf = ft_order.place_order(
     ft_accounts.account_numbers[0],
     symbol="INTC",
-    price_type=order.PriceType.MARKET,
+    price_type=order.PriceType.LIMIT,
     order_type=order.OrderType.BUY,
     duration=order.Duration.DAY,
     quantity=1,
     dry_run=True,
 )
+
+print(order_conf)
 
 if "order_id" not in order_conf["result"]:
     print("Dry run complete.")
@@ -93,34 +95,34 @@ recent_orders = ft_accounts.get_orders(ft_accounts.account_numbers[0])
 print(recent_orders)
 
 #Get option dates
-option_first = symbols.OptionQuote(ft_ss, "M")
+option_first = symbols.OptionQuote(ft_ss, "INTC")
 option_first.option_dates
 for item in option_first.option_dates["items"]:
     print(f"Expiration Date: {item["exp_date"]} Days Left: {item["day_left"]} Expiration Type: {item["exp_type"]}")
 
 # Get option quote
-option_quote = option_first.get_option_quote("M", option_first.option_dates["items"][0]["exp_date"])
+option_quote = option_first.get_option_quote("INTC", option_first.option_dates["items"][0]["exp_date"])
 print(option_quote)
 
 # Get option greeks
-option_greeks = option_first.get_greek_options("M", option_first.option_dates["items"][0]["exp_date"])
-#print(option_greeks)
+option_greeks = option_first.get_greek_options("INTC", option_first.option_dates["items"][0]["exp_date"])
+print(option_greeks)
 
 print(f"Placing dry option order for {option_quote["items"][0]["opt_symbol"]} with a price of {option_quote["items"][0]["ask"]}.")
-print("Symbol readable ticker 'M'")
+print("Symbol readable ticker 'INTC'")
+
 # Place dry option order
-try:
-    option_order = ft_order.place_option_order(
-        account=ft_accounts.account_numbers[0],
-        option_symbol=option_quote["items"][0]["opt_symbol"],
-        order_type=order.OrderType.BUY_OPTION,
-        price_type=order.PriceType.MARKET,
-        duration=order.Duration.DAY,
-        contracts=1,
-        dry_run=True,
-    )
-except PreviewOrderError as e:
-    print(e)
+option_order = ft_order.place_option_order(
+    account=ft_accounts.account_numbers[0],
+    option_symbol=option_quote["items"][0]["opt_symbol"],
+    order_type=order.OrderType.BUY_OPTION,
+    price_type=order.PriceType.MARKET,
+    duration=order.Duration.DAY,
+    contracts=1,
+    dry_run=True,
+)
+
+print(option_order)
 
 # Delete cookies
 ft_ss.delete_cookies()

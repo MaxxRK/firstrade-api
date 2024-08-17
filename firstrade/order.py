@@ -2,7 +2,6 @@ from enum import Enum
 
 from firstrade import urls
 from firstrade.account import FTSession
-from firstrade.exceptions import PreviewOrderError, PlaceOrderError
 
 
 class PriceType(str, Enum):
