@@ -128,10 +128,6 @@ class OptionQuote:
             QuoteResponseError: If the response for option dates contains an error message.
         """
         response = self.ft_session.get(url=urls.option_dates(symbol))
-        if response.status_code != 200:
-            raise QuoteRequestError(response.status_code)
-        if response.json().get("error", "") != "":
-            raise QuoteResponseError(symbol, response.json()["error"])
         return response.json()
     
     def get_option_quote(self, symbol: str, date: str):
@@ -149,10 +145,6 @@ class OptionQuote:
             QuoteResponseError: If the response for the option quote contains an error message.
         """
         response = self.ft_session.get(url=urls.option_quotes(symbol, date))
-        if response.status_code != 200:
-            raise QuoteRequestError(response.status_code)
-        if response.json().get("error", "") != "":
-            raise QuoteResponseError(symbol, response.json()["error"])
         return response.json()
     
     def get_greek_options(self, symbol: str, exp_date: str):
@@ -177,8 +169,4 @@ class OptionQuote:
             "exp_date": exp_date,
         }
         response = self.ft_session.post(url=urls.greek_options(), data=data)
-        if response.status_code != 200:
-            raise QuoteRequestError(response.status_code)
-        if response.json().get("error", "") != "":
-            raise QuoteResponseError(symbol, response.json()["error"])
         return response.json()

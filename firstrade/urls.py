@@ -1,5 +1,4 @@
 def login():
-    #return "https://invest.firstrade.com/cgi-bin/login"
     return "https://api3x.firstrade.com/sess/login"
 
 
@@ -30,23 +29,30 @@ def account_positions(account):
 def quote(account, symbol):
     return f"https://api3x.firstrade.com/public/quote?account={account}&q={symbol}"
 
+
 def order():
     return "https://api3x.firstrade.com/private/stock_order"
+
 
 def order_list(account):
     return f"https://api3x.firstrade.com/private/order_status?account={account}"
 
+
 def account_history(account):
     return f"https://api3x.firstrade.com/private/account_history?range=ytd&page=1&account={account}&per_page=200"
+
 
 def cancel_order():
     return "https://api3x.firstrade.com/private/cancel_order"
 
+
 def option_dates(symbol):
     return f"https://api3x.firstrade.com/public/oc?m=get_exp_dates&root_symbol={symbol}"
 
+
 def option_quotes(symbol, date):
     return f"https://api3x.firstrade.com/public/oc?m=get_oc&root_symbol={symbol}&exp_date={date}&chains_range=A"
+
 
 def greek_options():
     return "https://api3x.firstrade.com/private/greekoptions/analytical"
@@ -54,6 +60,7 @@ def greek_options():
 
 def option_order():
     return "https://api3x.firstrade.com/private/option_order"
+
 
 def session_headers():
     headers = {
@@ -63,6 +70,7 @@ def session_headers():
         "User-Agent": "okhttp/4.9.2",   
     }
     return headers
+
 
 def access_token():
     return "833w3XuIFycv18ybi"

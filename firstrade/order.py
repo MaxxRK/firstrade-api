@@ -171,24 +171,13 @@ class Order:
             data["stop_price"] = stop_price
         response = self.ft_session.post(url=urls.order(), data=data)
         if response.status_code != 200 or response.json()["error"] != "":
-            raise PreviewOrderError(
-                symbol,
-                response.json().get("error", "Unknown error"),
-                response.json().get("message", "No message provided")
-            )
+            return response.json()
         preview_data = response.json()
         if dry_run:
             return preview_data
         data["preview"] = "false"
         data["stage"] = "P"
-        
         response = self.ft_session.post(url=urls.order(), data=data)
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise PlaceOrderError(
-                symbol,
-                response.json().get("error", "Unknown error"),
-                response.json().get("message", "No message provided")
-            )
         return response.json()
 
     def place_option_order(
@@ -251,19 +240,9 @@ class Order:
 
         response = self.ft_session.post(url=urls.option_order(), data=data)
         if response.status_code != 200 or response.json()["error"] != "":
-            raise PreviewOrderError(
-                option_symbol,
-                response.json().get("error", "Unknown error"),
-                response.json().get("message", "No message provided")
-            )
+            return response.json()
         if dry_run:
             return response.json()
         data["preview"] = "false"
         response = self.ft_session.post(url=urls.option_order(), data=data)
-        if response.status_code != 200 or response.json()["error"] != "":
-            raise PlaceOrderError(
-                option_symbol,
-                response.json().get("error", "Unknown error"),
-                response.json().get("message", "No message provided")
-            )
         return response.json()

@@ -274,14 +274,10 @@ class FTAccountData:
         self.account_numbers = []
         self.account_balances = {}
         response = self.session.get(url=urls.user_info())
-        if response.status_code != 200:
-            raise AccountRequestError(response.status_code)
         self.user_info = response.json()
         response = self.session.get(urls.account_list())
-        if response.status_code != 200:
-            raise AccountRequestError(response.status_code)
-        if response.json()["error"] != "":
-            raise AccountResponseError(response.json()['error'])
+        if response.status_code != 200 or response.json()["error"] != "":
+            raise AccountResponseError(response.json()["error"])
         self.all_accounts = response.json()
         for item in self.all_accounts["items"]:
             self.account_numbers.append(item["account"])
@@ -296,11 +292,7 @@ class FTAccountData:
         Returns:
             dict: Dict of the response from the API.
         """
-        response = self.session.get(urls.account_balances(account))
-        if response.status_code != 200:
-            raise AccountRequestError(response.status_code)
-        if response.json()["error"] != "":
-            raise AccountResponseError(response.json()['error'])
+        response = self.session.get(urls.account_balances(account))  
         return response.json()
 
     def get_positions(self, account):
@@ -314,10 +306,6 @@ class FTAccountData:
         """
         
         response = self.session.get(urls.account_positions(account))
-        if response.status_code != 200:
-            raise AccountRequestError(response.status_code)
-        if response.json()["error"] != "":
-            raise AccountResponseError(response.json()['error'])
         return response.json()
     
     def get_account_history(self, account):
@@ -330,10 +318,6 @@ class FTAccountData:
             dict: Dict of the response from the API.
         """
         response = self.session.get(urls.account_history(account))
-        if response.status_code != 200:
-            raise AccountRequestError(response.status_code)
-        if response.json()["error"] != "":
-            raise AccountResponseError(response.json()['error'])
         return response.json()
     
     def get_orders(self, account):
@@ -349,10 +333,6 @@ class FTAccountData:
         """
 
         response = self.session.get(url=urls.order_list(account))
-        if response.status_code != 200:
-            raise AccountRequestError(response.status_code)
-        if response.json()["error"] != "":
-            raise AccountResponseError(response.json()['error'])
         return response.json()
 
     def cancel_order(self, order_id):
@@ -373,9 +353,4 @@ class FTAccountData:
         response = self.session.post(
             url=urls.cancel_order(), data=data
         )
-
-        if response.status_code != 200:
-            raise AccountRequestError(response.status_code)
-        if response.json()["error"] != "":
-            raise AccountResponseError(response.json()['error'])
         return response.json()
