@@ -135,7 +135,6 @@ print(recent_orders)
 
 #Get option dates
 option_first = symbols.OptionQuote(ft_ss, "INTC")
-option_first.option_dates
 for item in option_first.option_dates["items"]:
     print(f"Expiration Date: {item["exp_date"]} Days Left: {item["day_left"]} Expiration Type: {item["exp_type"]}")
 
