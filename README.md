@@ -190,11 +190,11 @@ ft_ss.delete_cookies()
 
 ## Options
 
-### I am unfamiliar with options trading and have not fully tested this feature.
+### I am very new to options trading and have not fully tested this feature.
 
 Please:
 - USE THIS FEATURE LIKE IT IS A ALPHA/BETA
-- PUT IN A GITHUB ISSUE IF YOU FIND ANY ISSUES
-
+- PUT IN A GITHUB ISSUE IF YOU FIND ANY PROBLEMS
+  
 ## If you would like to support me, you can do so here:
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/maxxrk?style=social)](https://github.com/sponsors/maxxrk)
