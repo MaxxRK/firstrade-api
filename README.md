@@ -124,10 +124,10 @@ else:
     print(f"Order State: {order_conf["result"]["state"]}.")
 
 # Cancel placed order
-#cancel = ft_accounts.cancel_order(order_conf['result']["order_id"])
-#if cancel["result"]["result"] == "success":
-    #print("Order cancelled successfully.")
-#print(cancel)
+# cancel = ft_accounts.cancel_order(order_conf['result']["order_id"])
+# if cancel["result"]["result"] == "success":
+    # print("Order cancelled successfully.")
+# print(cancel)
 
 # Check orders
 recent_orders = ft_accounts.get_orders(ft_accounts.account_numbers[0])
