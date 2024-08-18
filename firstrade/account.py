@@ -1,15 +1,18 @@
 import os
 import pickle
-import pyotp
 
+import pyotp
 import requests
 
 from firstrade import urls
-from firstrade.exceptions import LoginRequestError, LoginResponseError, AccountResponseError
+from firstrade.exceptions import (
+    AccountResponseError,
+    LoginRequestError,
+    LoginResponseError,
+)
 
 
 class FTSession:
-
     """
     Class creating a session for Firstrade.
 
@@ -47,7 +50,17 @@ class FTSession:
         _handle_mfa():
             Handles multi-factor authentication.
     """
-    def __init__(self, username, password, pin=None, email=None, phone=None, mfa_secret=None, profile_path=None):
+
+    def __init__(
+        self,
+        username,
+        password,
+        pin=None,
+        email=None,
+        phone=None,
+        mfa_secret=None,
+        profile_path=None,
+    ):
         """
         Initializes a new instance of the FTSession class.
 
@@ -88,7 +101,7 @@ class FTSession:
             self.session.headers["ftat"] = ftat
         response = self.session.get(url="https://api3x.firstrade.com/", timeout=10)
         self.session.headers["access-token"] = urls.access_token()
-        
+
         data = {
             "username": r"" + self.username,
             "password": r"" + self.password,
@@ -99,7 +112,11 @@ class FTSession:
             data=data,
         )
         self.login_json = response.json()
-        if "mfa" not in self.login_json and "ftat" in self.login_json and self.login_json["error"] == "":
+        if (
+            "mfa" not in self.login_json
+            and "ftat" in self.login_json
+            and self.login_json["error"] == ""
+        ):
             self.session.headers["sid"] = self.login_json["sid"]
             return False
         self.t_token = self.login_json.get("t_token")
@@ -108,10 +125,10 @@ class FTSession:
         if response.status_code != 200:
             raise LoginRequestError(response.status_code)
         if self.login_json["error"] != "":
-            raise LoginResponseError(self.login_json['error'])    
+            raise LoginResponseError(self.login_json["error"])
         need_code = self._handle_mfa()
-        if self.login_json["error"]!= "":
-                raise LoginResponseError(self.login_json['error'])
+        if self.login_json["error"] != "":
+            raise LoginResponseError(self.login_json["error"])
         if need_code:
             return True
         self.session.headers["ftat"] = self.login_json["ftat"]
@@ -126,23 +143,23 @@ class FTSession:
             "verificationSid": self.session.headers["sid"],
             "remember_for": "30",
             "t_token": self.t_token,
-            }
+        }
         response = self.session.post(urls.verify_pin(), data=data)
         self.login_json = response.json()
-        if self.login_json["error"]!= "":
-                raise LoginResponseError(self.login_json['error'])
+        if self.login_json["error"] != "":
+            raise LoginResponseError(self.login_json["error"])
         self.session.headers["ftat"] = self.login_json["ftat"]
         self.session.headers["sid"] = self.login_json["sid"]
         self._save_cookies()
-    
-    def delete_cookies(self):    
+
+    def delete_cookies(self):
         """Deletes the session cookies."""
         if self.profile_path is not None:
             path = os.path.join(self.profile_path, f"ft_cookies{self.username}.pkl")
         else:
             path = f"ft_cookies{self.username}.pkl"
         os.remove(path)
-            
+
     def _load_cookies(self):
         """
         Checks if session cookies were saved.
@@ -152,7 +169,9 @@ class FTSession:
         """
 
         ftat = ""
-        directory = os.path.abspath(self.profile_path) if self.profile_path is not None else "."
+        directory = (
+            os.path.abspath(self.profile_path) if self.profile_path is not None else "."
+        )
         if not os.path.exists(directory):
             os.makedirs(directory)
 
@@ -162,7 +181,7 @@ class FTSession:
                 with open(filepath, "rb") as f:
                     ftat = pickle.load(f)
         return ftat
-        
+
     def _save_cookies(self):
         """Saves session cookies to a file."""
         if self.profile_path is not None:
@@ -175,7 +194,7 @@ class FTSession:
         with open(path, "wb") as f:
             ftat = self.session.headers.get("ftat")
             pickle.dump(ftat, f)
-        
+
     def _mask_email(self, email):
         """
         Masks the email for use in the API.
@@ -186,12 +205,12 @@ class FTSession:
         Returns:
             str: The masked email address.
         """
-        local, domain = email.split('@')
-        masked_local = local[0] + '*' * 4
-        domain_name, tld = domain.split('.')
-        masked_domain = domain_name[0] + '*' * 4
+        local, domain = email.split("@")
+        masked_local = local[0] + "*" * 4
+        domain_name, tld = domain.split(".")
+        masked_domain = domain_name[0] + "*" * 4
         return f"{masked_local}@{masked_domain}.{tld}"
-    
+
     def _handle_mfa(self):
         """
         Handles multi-factor authentication.
@@ -206,11 +225,13 @@ class FTSession:
             data = {
                 "pin": self.pin,
                 "remember_for": "30",
-                "t_token": self.t_token, 
+                "t_token": self.t_token,
             }
             response = self.session.post(urls.verify_pin(), data=data)
             self.login_json = response.json()
-        elif not self.login_json["mfa"] and (self.email is not None or self.phone is not None):
+        elif not self.login_json["mfa"] and (
+            self.email is not None or self.phone is not None
+        ):
             for item in self.otp_options:
                 if item["channel"] == "sms" and self.phone is not None:
                     if self.phone in item["recipientMask"]:
@@ -222,7 +243,7 @@ class FTSession:
                     if self.email == item["recipientMask"]:
                         data = {
                             "recipientId": item["recipientId"],
-                            "t_token": self.t_token, 
+                            "t_token": self.t_token,
                         }
             response = self.session.post(urls.request_code(), data=data)
         elif self.login_json["mfa"] and self.mfa_secret is not None:
@@ -239,9 +260,8 @@ class FTSession:
                 self.session.headers["sid"] = self.login_json["sid"]
                 return False
             else:
-                self.session.headers["sid"]= self.login_json["verificationSid"]
+                self.session.headers["sid"] = self.login_json["verificationSid"]
                 return True
-
 
     def __getattr__(self, name):
         """
@@ -279,7 +299,7 @@ class FTAccountData:
         self.all_accounts = response.json()
         for item in self.all_accounts["items"]:
             self.account_numbers.append(item["account"])
-            self.account_balances[item['account']] = item["total_value"]
+            self.account_balances[item["account"]] = item["total_value"]
 
     def get_account_balances(self, account):
         """Gets account balances for a given account.
@@ -290,7 +310,7 @@ class FTAccountData:
         Returns:
             dict: Dict of the response from the API.
         """
-        response = self.session.get(urls.account_balances(account))  
+        response = self.session.get(urls.account_balances(account))
         return response.json()
 
     def get_positions(self, account):
@@ -302,10 +322,10 @@ class FTAccountData:
         Returns:
             dict: Dict of the response from the API.
         """
-        
+
         response = self.session.get(urls.account_positions(account))
         return response.json()
-    
+
     def get_account_history(self, account):
         """Gets account history for a given account.
 
@@ -317,7 +337,7 @@ class FTAccountData:
         """
         response = self.session.get(urls.account_history(account))
         return response.json()
-    
+
     def get_orders(self, account):
         """
         Retrieves existing order data for a given account.
@@ -348,7 +368,5 @@ class FTAccountData:
             "order_id": order_id,
         }
 
-        response = self.session.post(
-            url=urls.cancel_order(), data=data
-        )
+        response = self.session.post(url=urls.cancel_order(), data=data)
         return response.json()

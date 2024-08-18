@@ -23,7 +23,9 @@ def account_balances(account):
 
 
 def account_positions(account):
-    return f"https://api3x.firstrade.com/private/positions?account={account}&per_page=200"
+    return (
+        f"https://api3x.firstrade.com/private/positions?account={account}&per_page=200"
+    )
 
 
 def quote(account, symbol):
@@ -67,7 +69,7 @@ def session_headers():
         "Accept-Encoding": "gzip",
         "Connection": "Keep-Alive",
         "Host": "api3x.firstrade.com",
-        "User-Agent": "okhttp/4.9.2",   
+        "User-Agent": "okhttp/4.9.2",
     }
     return headers
 
