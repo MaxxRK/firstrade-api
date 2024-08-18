@@ -176,7 +176,7 @@ class FTSession:
             ftat = self.session.headers.get("ftat")
             pickle.dump(ftat, f)
     
-    @staticmethod    
+    @staticmethod
     def _mask_email(email):
         """
         Masks the email for use in the API.
@@ -239,7 +239,7 @@ class FTSession:
             if self.pin or self.mfa_secret is not None:
                 self.session.headers["sid"] = self.login_json["sid"]
                 return False
-            self.session.headers["sid"]= self.login_json["verificationSid"]
+            self.session.headers["sid"] = self.login_json["verificationSid"]
             return True
 
 
