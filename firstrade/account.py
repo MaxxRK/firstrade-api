@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 
@@ -111,7 +112,10 @@ class FTSession:
             url=urls.login(),
             data=data,
         )
-        self.login_json = response.json()
+        try:
+            self.login_json = response.json()
+        except json.decoder.JSONDecodeError:
+            raise LoginResponseError("Invalid JSON is your account funded?")
         if (
             "mfa" not in self.login_json
             and "ftat" in self.login_json
