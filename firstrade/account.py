@@ -335,12 +335,12 @@ class FTAccountData:
 
         Args:
             account (str): Account number of the account you want to get history for.
-            range (str): The range of the history. Defaults to "ytd". 
-                         Available options are 
+            range (str): The range of the history. Defaults to "ytd".
+                         Available options are
                          ["today", "1w", "1m", "2m", "mtd", "ytd", "ly", "cust"].
-            custom_range (str): The custom range of the history. 
-                                Defaults to None. If range is "cust", 
-                                this parameter is required. 
+            custom_range (str): The custom range of the history.
+                                Defaults to None. If range is "cust",
+                                this parameter is required.
                                 Format: ["YYYY-MM-DD", "YYYY-MM-DD"].
 
         Returns:
