@@ -348,7 +348,9 @@ class FTAccountData:
         """
         if date_range == "cust" and custom_range is None:
             raise ValueError("Custom range is required when date_range is 'cust'.")
-        response = self.session.get(urls.account_history(account, date_range, custom_range))
+        response = self.session.get(
+            urls.account_history(account, date_range, custom_range)
+        )
         return response.json()
 
     def get_orders(self, account):
