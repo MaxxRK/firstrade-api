@@ -1,8 +1,6 @@
 class QuoteError(Exception):
     """Base class for exceptions in the Quote module."""
 
-    pass
-
 
 class QuoteRequestError(QuoteError):
     """Exception raised for errors in the HTTP request during a Quote."""
@@ -24,8 +22,6 @@ class QuoteResponseError(QuoteError):
 
 class LoginError(Exception):
     """Exception raised for errors in the login process."""
-
-    pass
 
 
 class LoginRequestError(LoginError):
@@ -49,8 +45,6 @@ class LoginResponseError(LoginError):
 
 class AccountError(Exception):
     """Base class for exceptions in the Account module."""
-
-    pass
 
 
 class AccountResponseError(AccountError):
