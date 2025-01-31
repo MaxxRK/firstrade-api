@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="firstrade",
-    version="0.0.31",
+    version="0.0.32",
     author="MaxxRK",
     author_email="maxxrk@pm.me",
     description="An unofficial API for Firstrade",
@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     license="MIT",
     url="https://github.com/MaxxRK/firstrade-api",
-    download_url="https://github.com/MaxxRK/firstrade-api/archive/refs/tags/0031.tar.gz",
+    download_url="https://github.com/MaxxRK/firstrade-api/archive/refs/tags/0032.tar.gz",
     keywords=["FIRSTRADE", "API"],
     install_requires=["requests", "beautifulsoup4", "lxml"],
     packages=["firstrade"],
@@ -27,5 +27,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
 )

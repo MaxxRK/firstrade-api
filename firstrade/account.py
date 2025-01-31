@@ -335,15 +335,19 @@ class FTAccountData:
 
         Args:
             account (str): Account number of the account you want to get history for.
-            range (str): The range of the history. Defaults to "ytd". Available options are ["today", "1w", "1m", "2m", "mtd", "ytd", "ly", "cust"].
-            custom_range (str): The custom range of the history. Defaults to None. If range is "cust", this parameter is required. Format: ["YYYY-MM-DD", "YYYY-MM-DD"].
+            range (str): The range of the history. Defaults to "ytd". 
+                         Available options are 
+                         ["today", "1w", "1m", "2m", "mtd", "ytd", "ly", "cust"].
+            custom_range (str): The custom range of the history. 
+                                Defaults to None. If range is "cust", 
+                                this parameter is required. 
+                                Format: ["YYYY-MM-DD", "YYYY-MM-DD"].
 
         Returns:
             dict: Dict of the response from the API.
         """
         if date_range == "cust" and custom_range is None:
             raise ValueError("Custom range is required when date_range is 'cust'.")
-        
         response = self.session.get(urls.account_history(account, date_range, custom_range))
         return response.json()
 
