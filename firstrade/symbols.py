@@ -88,7 +88,7 @@ class SymbolQuote:
         self.realtime = response.json()["result"]["realtime"]
         self.nls = response.json()["result"]["nls"]
         self.shares = response.json()["result"]["shares"]
-        
+
 
 class OptionQuote:
     """
@@ -112,7 +112,7 @@ class OptionQuote:
         self.ft_session = ft_session
         self.symbol = symbol
         self.option_dates = self.get_option_dates(symbol)
-        
+
     def get_option_dates(self, symbol: str):
         """
         Retrieves the expiration dates for options on a given symbol.
@@ -129,7 +129,7 @@ class OptionQuote:
         """
         response = self.ft_session.get(url=urls.option_dates(symbol))
         return response.json()
-    
+
     def get_option_quote(self, symbol: str, date: str):
         """
         Retrieves the quote for a given option symbol.
@@ -146,7 +146,7 @@ class OptionQuote:
         """
         response = self.ft_session.get(url=urls.option_quotes(symbol, date))
         return response.json()
-    
+
     def get_greek_options(self, symbol: str, exp_date: str):
         """
         Retrieves the greeks for options on a given symbol.
