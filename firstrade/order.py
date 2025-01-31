@@ -180,17 +180,17 @@ class Order:
         return response.json()
 
     def place_option_order(
-            self,
-            account: str,
-            option_symbol: str,
-            price_type: PriceType, 
-            order_type: OrderType,
-            contracts: int,
-            duration: Duration,
-            stop_price: float = None,
-            price: float = 0.00,
-            dry_run: bool = True,
-            order_instruction: OrderInstructions = "0",
+        self,
+        account: str,
+        option_symbol: str,
+        price_type: PriceType,
+        order_type: OrderType,
+        contracts: int,
+        duration: Duration,
+        stop_price: float = None,
+        price: float = 0.00,
+        dry_run: bool = True,
+        order_instruction: OrderInstructions = "0",
     ):
         """
         Builds and places an option order.
@@ -221,7 +221,6 @@ class Order:
         if order_instruction == OrderInstructions.AON and contracts <= 100:
             raise ValueError("AON orders must be greater than 100 shares.")
 
-
         data = {
             "duration": duration,
             "instructions": order_instruction,
@@ -233,7 +232,7 @@ class Order:
             "price_type": price_type,
         }
         if price_type in [PriceType.LIMIT, PriceType.STOP_LIMIT]:
-                data["limit_price"] = price
+            data["limit_price"] = price
         if price_type in [PriceType.STOP, PriceType.STOP_LIMIT]:
             data["stop_price"] = stop_price
 
