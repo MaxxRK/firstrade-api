@@ -38,8 +38,10 @@ def order_list(account):
     return f"https://api3x.firstrade.com/private/order_status?account={account}"
 
 
-def account_history(account):
-    return f"https://api3x.firstrade.com/private/account_history?range=ytd&page=1&account={account}&per_page=200"
+def account_history(account, date_range, custom_range):
+    if custom_range is None:
+        return f"https://api3x.firstrade.com/private/account_history?range={date_range}&page=1&account={account}&per_page=1000"
+    return f"https://api3x.firstrade.com/private/account_history?range={date_range}&range_arr[]={custom_range[0]}&range_arr[]={custom_range[1]}&page=1&account={account}&per_page=1000"
 
 
 def cancel_order():

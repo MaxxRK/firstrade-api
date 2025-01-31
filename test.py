@@ -55,7 +55,12 @@ for item in positions["items"]:
     )
 
 # Get account history (past 200)
-history = ft_accounts.get_account_history(account=ft_accounts.account_numbers[0])
+history = ft_accounts.get_account_history(
+    account=ft_accounts.account_numbers[0],
+    date_range="cust",
+    custom_range=["2024-01-01", "2024-06-30"]
+)
+
 for item in history["items"]:
     print(f"Transaction: {item["symbol"]} on {item["report_date"]} for {item["amount"]}.")
 
