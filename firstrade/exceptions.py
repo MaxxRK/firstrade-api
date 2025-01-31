@@ -15,7 +15,7 @@ class QuoteResponseError(QuoteError):
         self.symbol = symbol
         self.message = f"Failed to get data for {symbol}. API returned the following error: {error_message}"
         super().__init__(self.message)
-        
+
 class LoginError(Exception):
     """Exception raised for errors in the login process."""
     pass
@@ -32,7 +32,7 @@ class LoginResponseError(LoginError):
     def __init__(self, error_message):
         self.message = f"Failed to login. API returned the following error: {error_message}"
         super().__init__(self.message)
-        
+
 class AccountError(Exception):
     """Base class for exceptions in the Account module."""
     pass

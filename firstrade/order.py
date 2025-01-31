@@ -149,7 +149,7 @@ class Order:
             raise ValueError("AON orders must be a limit order.")
         if order_instruction == OrderInstructions.AON and quantity <= 100:
             raise ValueError("AON orders must be greater than 100 shares.")
- 
+
         data = {
             "symbol": symbol,
             "transaction": order_type,
@@ -215,13 +215,13 @@ class Order:
         Returns:
             dict: A dictionary containing the order confirmation data.
         """
-        
+
         if order_instruction == OrderInstructions.AON and price_type != PriceType.LIMIT:
             raise ValueError("AON orders must be a limit order.")
         if order_instruction == OrderInstructions.AON and contracts <= 100:
             raise ValueError("AON orders must be greater than 100 shares.")
-            
-        
+
+
         data = {
             "duration": duration,
             "instructions": order_instruction,
