@@ -55,7 +55,6 @@ class SymbolQuote:
         """
         self.ft_session = ft_session
         response = self.ft_session.get(url=urls.quote(account, symbol))
-        print(response.json())
         if response.status_code != 200:
             raise QuoteRequestError(response.status_code)
         if response.json().get("error", "") != "":
