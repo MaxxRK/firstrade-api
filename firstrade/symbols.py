@@ -55,6 +55,7 @@ class SymbolQuote:
         """
         self.ft_session = ft_session
         response = self.ft_session.get(url=urls.quote(account, symbol))
+        print(response.json())
         if response.status_code != 200:
             raise QuoteRequestError(response.status_code)
         if response.json().get("error", "") != "":
@@ -70,9 +71,9 @@ class SymbolQuote:
         self.change = response.json()["result"]["change"]
         self.high = response.json()["result"]["high"]
         self.low = response.json()["result"]["low"]
-        self.bid_mmid = response.json()["result"]["bid_mmid:"]
-        self.ask_mmid = response.json()["result"]["ask_mmid:"]
-        self.last_mmid = response.json()["result"]["last_mmid:"]
+        self.bid_mmid = response.json()["result"]["bid_mmid"]
+        self.ask_mmid = response.json()["result"]["ask_mmid"]
+        self.last_mmid = response.json()["result"]["last_mmid"]
         self.last_size = response.json()["result"]["last_size"]
         self.change_color = response.json()["result"]["change_color"]
         self.volume = response.json()["result"]["vol"]
