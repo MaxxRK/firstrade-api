@@ -51,7 +51,7 @@ positions = ft_accounts.get_positions(account=ft_accounts.account_numbers[1])
 print(positions)
 for item in positions["items"]:
     print(
-        f"Quantity {item["quantity"]} of security {item["symbol"]} held in account {ft_accounts.account_numbers[1]}"
+        f"Quantity {item['quantity']} of security {item['symbol']} held in account {ft_accounts.account_numbers[1]}"
     )
 
 # Get account history (past 200)
@@ -62,7 +62,7 @@ history = ft_accounts.get_account_history(
 )
 
 for item in history["items"]:
-    print(f"Transaction: {item["symbol"]} on {item["report_date"]} for {item["amount"]}.")
+    print(f"Transaction: {item['symbol']} on {item['report_date']} for {item['amount']}.")
 
 
 # Create an order object.
@@ -86,8 +86,8 @@ if "order_id" not in order_conf["result"]:
     print(order_conf["result"])
 else:
     print("Order placed successfully.")
-    print(f"Order ID: {order_conf["result"]["order_id"]}.")
-    print(f"Order State: {order_conf["result"]["state"]}.")
+    print(f"Order ID: {order_conf['result']['order_id']}.")
+    print(f"Order State: {order_conf['result']['state']}.")
 
 # Cancel placed order
 # cancel = ft_accounts.cancel_order(order_conf['result']["order_id"])
@@ -102,7 +102,7 @@ print(recent_orders)
 #Get option dates
 option_first = symbols.OptionQuote(ft_ss, "INTC")
 for item in option_first.option_dates["items"]:
-    print(f"Expiration Date: {item["exp_date"]} Days Left: {item["day_left"]} Expiration Type: {item["exp_type"]}")
+    print(f"Expiration Date: {item['exp_date']} Days Left: {item['day_left']} Expiration Type: {item['exp_type']}")
 
 # Get option quote
 option_quote = option_first.get_option_quote("INTC", option_first.option_dates["items"][0]["exp_date"])
@@ -112,7 +112,7 @@ print(option_quote)
 option_greeks = option_first.get_greek_options("INTC", option_first.option_dates["items"][0]["exp_date"])
 print(option_greeks)
 
-print(f"Placing dry option order for {option_quote["items"][0]["opt_symbol"]} with a price of {option_quote["items"][0]["ask"]}.")
+print(f"Placing dry option order for {option_quote['items'][0]['opt_symbol']} with a price of {option_quote['items'][0]['ask']}.")
 print("Symbol readable ticker 'INTC'")
 
 # Place dry option order
