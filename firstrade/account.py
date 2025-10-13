@@ -244,12 +244,14 @@ class FTSession:
                             "recipientId": item["recipientId"],
                             "t_token": self.t_token,
                         }
+                        break
                 elif item["channel"] == "email" and self.email is not None:
                     if self.email == item["recipientMask"]:
                         data = {
                             "recipientId": item["recipientId"],
                             "t_token": self.t_token,
                         }
+                        break
             response = self.session.post(urls.request_code(), data=data)
         elif self.login_json["mfa"] and self.mfa_secret is not None:
             mfa_otp = pyotp.TOTP(self.mfa_secret).now()
@@ -385,3 +387,52 @@ class FTAccountData:
 
         response = self.session.post(url=urls.cancel_order(), data=data)
         return response.json()
+
+    def get_balance_overview(self, account, keywords=None):
+        """
+        Returns a filtered, flattened view of useful balance fields.
+
+        This is a convenience helper over `get_account_balances` to quickly
+        surface likely relevant numbers such as cash, available cash, and
+        buying power without needing to know the exact response structure.
+
+        Args:
+            account (str): Account number to query balances for.
+            keywords (list[str], optional): Additional case-insensitive substrings
+                to match in keys. Defaults to a sensible set for balances.
+
+        Returns:
+            dict: A dict mapping dot-notated keys to values from the balances
+                  response where the key path contains any of the keywords.
+        """
+        if keywords is None:
+            keywords = [
+                "cash",
+                "avail",
+                "withdraw",
+                "buying",
+                "bp",
+                "equity",
+                "value",
+                "margin",
+            ]
+
+        payload = self.get_account_balances(account)
+
+        filtered = {}
+
+        def _walk(node, path):
+            if isinstance(node, dict):
+                for k, v in node.items():
+                    _walk(v, path + [str(k)])
+            elif isinstance(node, list):
+                for i, v in enumerate(node):
+                    _walk(v, path + [str(i)])
+            else:
+                key_path = ".".join(path)
+                low = key_path.lower()
+                if any(sub in low for sub in keywords):
+                    filtered[key_path] = node
+
+        _walk(payload, [])
+        return filtered
