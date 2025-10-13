@@ -244,12 +244,14 @@ class FTSession:
                             "recipientId": item["recipientId"],
                             "t_token": self.t_token,
                         }
+                        break
                 elif item["channel"] == "email" and self.email is not None:
                     if self.email == item["recipientMask"]:
                         data = {
                             "recipientId": item["recipientId"],
                             "t_token": self.t_token,
                         }
+                        break
             response = self.session.post(urls.request_code(), data=data)
         elif self.login_json["mfa"] and self.mfa_secret is not None:
             mfa_otp = pyotp.TOTP(self.mfa_secret).now()
