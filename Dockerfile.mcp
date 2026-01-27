@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY setup.py README.md ./
+COPY firstrade/ ./firstrade/
+
+RUN pip install --no-cache-dir . && \
+    pip install --no-cache-dir mcp
+
+# Copy MCP server
+COPY mcp_server.py ./
+
+# Create directories for config and data
+RUN mkdir -p /config /data
+
+# Set environment variable for config path
+ENV FIRSTRADE_CONFIG=/config/config.json
+
+# Run MCP server (stdio mode)
+CMD ["python", "mcp_server.py"]
