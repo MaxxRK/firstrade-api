@@ -1,0 +1,15 @@
+.git
+.gitignore
+.github
+.deepsource.toml
+*.pyc
+__pycache__
+*.egg-info
+dist
+build
+*.pkl
+config.json
+.env
+*.md
+!README.md
+test.py

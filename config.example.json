@@ -1,0 +1,9 @@
+{
+    "username": "your_username",
+    "password": "your_password",
+    "pin": "your_pin",
+    "email": null,
+    "phone": null,
+    "mfa_secret": "your_mfa_secret_if_using_authenticator_app",
+    "profile_path": "/data"
+}

@@ -1,0 +1,12 @@
+services:
+  firstrade-api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config.json:/config/config.json:ro
+      - firstrade-data:/data
+    restart: unless-stopped
+
+volumes:
+  firstrade-data:
