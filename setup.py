@@ -15,7 +15,7 @@ setuptools.setup(
     url="https://github.com/MaxxRK/firstrade-api",
     download_url="https://github.com/MaxxRK/firstrade-api/archive/refs/tags/0034.tar.gz",
     keywords=["FIRSTRADE", "API"],
-    install_requires=["requests", "beautifulsoup4", "lxml"],
+    install_requires=["requests", "pyotp"],
     packages=["firstrade"],
     classifiers=[
         "Development Status :: 3 - Alpha",
