@@ -7,7 +7,7 @@ COPY setup.py README.md ./
 COPY firstrade/ ./firstrade/
 
 RUN pip install --no-cache-dir . && \
-    pip install --no-cache-dir mcp
+    pip install --no-cache-dir mcp starlette uvicorn[standard]
 
 # Copy MCP server
 COPY mcp_server.py ./
@@ -18,5 +18,9 @@ RUN mkdir -p /config /data
 # Set environment variable for config path
 ENV FIRSTRADE_CONFIG=/config/config.json
 
-# Run MCP server (stdio mode)
-CMD ["python", "mcp_server.py"]
+# Expose port for SSE mode
+EXPOSE 8080
+
+# Default to SSE mode for Docker (can be overridden)
+# Use --transport=stdio for stdio mode
+CMD ["python", "mcp_server.py", "--transport", "sse"]

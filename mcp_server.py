@@ -3,8 +3,11 @@ MCP (Model Context Protocol) Server for Firstrade API.
 
 This server exposes Firstrade trading functionality as MCP tools
 that can be used by LLMs like Claude.
+
+Supports both stdio and SSE (Server-Sent Events) transport modes.
 """
 
+import argparse
 import json
 import os
 from typing import Optional
@@ -207,8 +210,8 @@ async def list_tools():
                         "description": "Stock symbol",
                     },
                     "exp_date": {
-                        "type": "string",
-                        "description": "Expiration date from get_option_dates",
+                        "type": ["string", "integer"],
+                        "description": "Expiration date from get_option_dates (e.g., 20260130)",
                     },
                 },
                 "required": ["symbol", "exp_date"],
@@ -225,8 +228,8 @@ async def list_tools():
                         "description": "Stock symbol",
                     },
                     "exp_date": {
-                        "type": "string",
-                        "description": "Expiration date",
+                        "type": ["string", "integer"],
+                        "description": "Expiration date (e.g., 20260130)",
                     },
                 },
                 "required": ["symbol", "exp_date"],
@@ -365,13 +368,13 @@ async def call_tool(name: str, arguments: dict):
 
         elif name == "get_option_chain":
             symbol = arguments["symbol"].upper()
-            exp_date = arguments["exp_date"]
+            exp_date = str(arguments["exp_date"])  # Convert to string in case it's passed as int
             option_quote = symbols.OptionQuote(state.session, symbol)
             result = option_quote.get_option_quote(symbol, exp_date)
 
         elif name == "get_option_greeks":
             symbol = arguments["symbol"].upper()
-            exp_date = arguments["exp_date"]
+            exp_date = str(arguments["exp_date"])  # Convert to string in case it's passed as int
             option_quote = symbols.OptionQuote(state.session, symbol)
             result = option_quote.get_greek_options(symbol, exp_date)
 
@@ -424,12 +427,84 @@ async def call_tool(name: str, arguments: dict):
         return [TextContent(type="text", text=f"Error: {str(e)}")]
 
 
-async def main():
-    """Run the MCP server."""
+async def run_stdio():
+    """Run the MCP server in stdio mode."""
     async with stdio_server() as (read_stream, write_stream):
         await server.run(read_stream, write_stream, server.create_initialization_options())
 
 
+def run_sse(host: str = "0.0.0.0", port: int = 8080):
+    """Run the MCP server in SSE mode."""
+    from mcp.server.sse import SseServerTransport
+    from starlette.applications import Starlette
+    from starlette.routing import Route, Mount
+    from starlette.responses import JSONResponse, Response
+    import uvicorn
+
+    # Create SSE transport
+    sse = SseServerTransport("/messages/")
+
+    async def handle_sse(request):
+        """Handle SSE connections."""
+        async with sse.connect_sse(
+            request.scope, request.receive, request._send
+        ) as streams:
+            await server.run(
+                streams[0], streams[1], server.create_initialization_options()
+            )
+        return Response()
+
+    async def health(request):
+        """Health check endpoint."""
+        return JSONResponse({"status": "ok", "transport": "sse"})
+
+    # Create Starlette app
+    app = Starlette(
+        debug=False,
+        routes=[
+            Route("/health", health, methods=["GET"]),
+            Route("/sse", handle_sse, methods=["GET"]),
+            Mount("/messages/", app=sse.handle_post_message),
+        ],
+    )
+
+    print(f"Starting MCP server with SSE transport on http://{host}:{port}")
+    print(f"  SSE endpoint: http://{host}:{port}/sse")
+    print(f"  Messages endpoint: http://{host}:{port}/messages/")
+    print(f"  Health check: http://{host}:{port}/health")
+
+    uvicorn.run(app, host=host, port=port)
+
+
+def main():
+    """Parse arguments and run the appropriate server mode."""
+    parser = argparse.ArgumentParser(description="Firstrade MCP Server")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "sse"],
+        default="stdio",
+        help="Transport mode: stdio (default) or sse",
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to bind to for SSE mode (default: 0.0.0.0)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port to listen on for SSE mode (default: 8080)",
+    )
+
+    args = parser.parse_args()
+
+    if args.transport == "sse":
+        run_sse(host=args.host, port=args.port)
+    else:
+        import asyncio
+        asyncio.run(run_stdio())
+
+
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
