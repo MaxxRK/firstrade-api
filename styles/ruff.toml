@@ -1,0 +1,15 @@
+line-length = 320 # I don't like text wrapping
+indent-width = 4
+preview = true
+
+[format]
+line-ending = "lf"
+
+[lint]
+select = ["ALL"]
+ignore = [
+    "CPY001", # Ignore license header checks
+    "D100",   # Ignore missing doc strings in modules
+    "D203",   # Conflicts with D211 (we like no blank line before class docstring)
+    "D213",   # Conflicts with D212 (we like first docstring line at top)
+]
