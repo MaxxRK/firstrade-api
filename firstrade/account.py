@@ -8,6 +8,7 @@ import requests
 from firstrade import urls
 from firstrade.exceptions import (
     AccountResponseError,
+    LoginError,
     LoginRequestError,
     LoginResponseError,
 )
@@ -261,6 +262,11 @@ class FTSession:
                 "t_token": self.t_token,
             }
             response = self.session.post(urls.verify_pin(), data=data)
+        else:
+            raise LoginError(
+                "MFA required but no valid MFA method "
+                "was provided (pin, email/phone, or mfa_secret)."
+            )
         self.login_json = response.json()
         if self.login_json["error"] == "":
             if self.pin or self.mfa_secret is not None:
