@@ -98,7 +98,7 @@ class FTSession:
         """
         self.session.headers.update(urls.session_headers())
         ftat: str = self._load_cookies()
-        if not ftat:
+        if ftat:
             self.session.headers["ftat"] = ftat
         response: requests.Response = self.session.get(url="https://api3x.firstrade.com/", timeout=10)
         self.session.headers["access-token"] = urls.access_token()
