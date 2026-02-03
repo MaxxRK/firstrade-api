@@ -262,8 +262,10 @@ class FTSession:
             }
             response = self.session.post(urls.verify_pin(), data=data)
         else:
-            raise LoginResponseError("MFA required but no valid MFA method "
-            "was provided (pin, email/phone, or mfa_secret).")
+            raise LoginResponseError(
+                "MFA required but no valid MFA method "
+                "was provided (pin, email/phone, or mfa_secret)."
+            )
         self.login_json = response.json()
         if self.login_json["error"] == "":
             if self.pin or self.mfa_secret is not None:
