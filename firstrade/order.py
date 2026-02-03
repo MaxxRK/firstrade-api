@@ -1,12 +1,11 @@
-from enum import Enum
+import enum
 
 from firstrade import urls
 from firstrade.account import FTSession
 
 
-class PriceType(str, Enum):
-    """
-    Enum for valid price types in an order.
+class PriceType(enum.StrEnum):
+    """Enum for valid price types in an order.
 
     Attributes:
         MARKET (str): Market order, executed at the current market price.
@@ -15,6 +14,7 @@ class PriceType(str, Enum):
         STOP_LIMIT (str): Stop-limit order, becomes a limit order once a specified price is reached.
         TRAILING_STOP_DOLLAR (str): Trailing stop order with a specified dollar amount.
         TRAILING_STOP_PERCENT (str): Trailing stop order with a specified percentage.
+
     """
 
     LIMIT = "2"
@@ -25,9 +25,8 @@ class PriceType(str, Enum):
     TRAILING_STOP_PERCENT = "6"
 
 
-class Duration(str, Enum):
-    """
-    Enum for valid order durations.
+class Duration(enum.StrEnum):
+    """Enum for valid order durations.
 
     Attributes:
         DAY (str): Day order.
@@ -35,6 +34,7 @@ class Duration(str, Enum):
         PRE_MARKET (str): Pre-market order.
         AFTER_MARKET (str): After-market order.
         DAY_EXT (str): Day extended order.
+
     """
 
     DAY = "0"
@@ -44,9 +44,8 @@ class Duration(str, Enum):
     DAY_EXT = "D"
 
 
-class OrderType(str, Enum):
-    """
-    Enum for valid order types.
+class OrderType(enum.StrEnum):
+    """Enum for valid order types.
 
     Attributes:
         BUY (str): Buy order.
@@ -55,6 +54,7 @@ class OrderType(str, Enum):
         BUY_TO_COVER (str): Buy to cover order.
         BUY_OPTION (str): Buy option order.
         SELL_OPTION (str): Sell option order.
+
     """
 
     BUY = "B"
@@ -65,28 +65,30 @@ class OrderType(str, Enum):
     SELL_OPTION = "SO"
 
 
-class OrderInstructions(str, Enum):
-    """
-    Enum for valid order instructions.
+class OrderInstructions(enum.StrEnum):
+    """Enum for valid order instructions.
 
     Attributes:
+        NONE (str): No special instruction.
         AON (str): All or none.
         OPG (str): At the Open.
         CLO (str): At the Close.
+
     """
 
+    NONE = "0"
     AON = "1"
     OPG = "4"
     CLO = "5"
 
 
-class OptionType(str, Enum):
-    """
-    Enum for valid option types.
+class OptionType(enum.StrEnum):
+    """Enum for valid option types.
 
     Attributes:
         CALL (str): Call option.
         PUT (str): Put option.
+
     """
 
     CALL = "C"
@@ -94,15 +96,16 @@ class OptionType(str, Enum):
 
 
 class Order:
-    """
-    Represents an order with methods to place it.
+    """Represents an order with methods to place it.
 
     Attributes:
         ft_session (FTSession): The session object for placing orders.
+
     """
 
-    def __init__(self, ft_session: FTSession):
-        self.ft_session = ft_session
+    def __init__(self, ft_session: FTSession) -> None:
+        """Initialize the Order with a FirstTrade session."""
+        self.ft_session: FTSession = ft_session
 
     def place_order(
         self,
@@ -113,13 +116,13 @@ class Order:
         duration: Duration,
         quantity: int = 0,
         price: float = 0.00,
-        stop_price: float = None,
+        stop_price: float | None = None,
+        *,
         dry_run: bool = True,
         notional: bool = False,
-        order_instruction: OrderInstructions = "0",
+        order_instruction: OrderInstructions = OrderInstructions.NONE,
     ):
-        """
-        Builds and places an order.
+        """Build and place an order.
 
         Args:
             account (str): The account number to place the order in.
@@ -134,15 +137,10 @@ class Order:
             notional (bool, optional): If True, the order will be placed based on a notional dollar amount rather than share quantity. Defaults to False.
             order_instruction (OrderInstructions, optional): Additional order instructions (e.g., AON, OPG). Defaults to "0".
 
-        Raises:
-            ValueError: If AON orders are not limit orders or if AON orders have a quantity of 100 shares or less.
-            PreviewOrderError: If the order preview fails.
-            PlaceOrderError: If the order placement fails.
-
         Returns:
             dict: A dictionary containing the order confirmation data.
-        """
 
+        """
         if price_type == PriceType.MARKET and not notional:
             price = ""
         if order_instruction == OrderInstructions.AON and price_type != PriceType.LIMIT:
@@ -164,11 +162,11 @@ class Order:
         if notional:
             data["dollar_amount"] = price
             del data["shares"]
-        if price_type in [PriceType.LIMIT, PriceType.STOP_LIMIT]:
+        if price_type in {PriceType.LIMIT, PriceType.STOP_LIMIT}:
             data["limit_price"] = price
-        if price_type in [PriceType.STOP, PriceType.STOP_LIMIT]:
+        if price_type in {PriceType.STOP, PriceType.STOP_LIMIT}:
             data["stop_price"] = stop_price
-        response = self.ft_session.post(url=urls.order(), data=data)
+        response: requests.Response = self.ft_session.post(url=urls.order(), data=data)
         if response.status_code != 200 or response.json()["error"] != "":
             return response.json()
         preview_data = response.json()
@@ -187,13 +185,13 @@ class Order:
         order_type: OrderType,
         contracts: int,
         duration: Duration,
-        stop_price: float = None,
+        stop_price: float | None = None,
         price: float = 0.00,
+        *,
         dry_run: bool = True,
-        order_instruction: OrderInstructions = "0",
+        order_instruction: OrderInstructions = OrderInstructions.NONE,
     ):
-        """
-        Builds and places an option order.
+        """Build and place an option order.
 
         Args:
             account (str): The account number to place the order in.
@@ -209,13 +207,11 @@ class Order:
 
         Raises:
             ValueError: If AON orders are not limit orders or if AON orders have a quantity of 100 contracts or less.
-            PreviewOrderError: If there is an error during the preview of the order.
-            PlaceOrderError: If there is an error during the placement of the order.
 
         Returns:
             dict: A dictionary containing the order confirmation data.
-        """
 
+        """
         if order_instruction == OrderInstructions.AON and price_type != PriceType.LIMIT:
             raise ValueError("AON orders must be a limit order.")
         if order_instruction == OrderInstructions.AON and contracts <= 100:
@@ -231,9 +227,9 @@ class Order:
             "account": account,
             "price_type": price_type,
         }
-        if price_type in [PriceType.LIMIT, PriceType.STOP_LIMIT]:
+        if price_type in {PriceType.LIMIT, PriceType.STOP_LIMIT}:
             data["limit_price"] = price
-        if price_type in [PriceType.STOP, PriceType.STOP_LIMIT]:
+        if price_type in {PriceType.STOP, PriceType.STOP_LIMIT}:
             data["stop_price"] = stop_price
 
         response = self.ft_session.post(url=urls.option_order(), data=data)

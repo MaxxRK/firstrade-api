@@ -36,10 +36,9 @@ class LoginRequestError(LoginError):
 class LoginResponseError(LoginError):
     """Exception raised for errors in the API response during login."""
 
-    def __init__(self, error_message):
-        self.message = (
-            f"Failed to login. API returned the following error: {error_message}"
-        )
+    def __init__(self, error_message: str) -> None:
+        """Raise error for login response issues."""
+        self.message = f"Failed to login. API returned the following error: {error_message}"
         super().__init__(self.message)
 
 

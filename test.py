@@ -51,7 +51,7 @@ positions = ft_accounts.get_positions(account=ft_accounts.account_numbers[0])
 print(positions)
 for item in positions["items"]:
     print(
-        f"Quantity {item['quantity']} of security {item['symbol']} held in account {ft_accounts.account_numbers[0]}"
+        f"Quantity {item['quantity']} of security {item['symbol']} held in account {ft_accounts.account_numbers[0]}",
     )
 
 # Get account history (past 200)
@@ -63,7 +63,7 @@ history = ft_accounts.get_account_history(
 
 for item in history["items"]:
     print(
-        f"Transaction: {item['symbol']} on {item['report_date']} for {item['amount']}."
+        f"Transaction: {item['symbol']} on {item['report_date']} for {item['amount']}.",
     )
 
 
@@ -83,7 +83,9 @@ order_conf = ft_order.place_order(
 
 print(order_conf)
 
-if "order_id" not in order_conf["result"]:
+if order_conf.get("error"):
+    print(f"Error placing order: {order_conf['error']} : {order_conf['message']}")
+elif "order_id" not in order_conf["result"]:
     print("Dry run complete.")
     print(order_conf["result"])
 else:
@@ -92,10 +94,11 @@ else:
     print(f"Order State: {order_conf['result']['state']}.")
 
 # Cancel placed order
-# cancel = ft_accounts.cancel_order(order_conf['result']["order_id"])
-# if cancel["result"]["result"] == "success":
-# print("Order cancelled successfully.")
-# print(cancel)
+if not order_conf.get("error"):
+    cancel = ft_accounts.cancel_order(order_conf["result"]["order_id"])
+    if cancel["result"]["result"] == "success":
+        print("Order cancelled successfully.")
+        print(cancel)
 
 # Check orders
 recent_orders = ft_accounts.get_orders(ft_accounts.account_numbers[0])
@@ -105,23 +108,25 @@ print(recent_orders)
 option_first = symbols.OptionQuote(ft_ss, "INTC")
 for item in option_first.option_dates["items"]:
     print(
-        f"Expiration Date: {item['exp_date']} Days Left: {item['day_left']} Expiration Type: {item['exp_type']}"
+        f"Expiration Date: {item['exp_date']} Days Left: {item['day_left']} Expiration Type: {item['exp_type']}",
     )
 
 # Get option quote
 option_quote = option_first.get_option_quote(
-    "INTC", option_first.option_dates["items"][0]["exp_date"]
+    "INTC",
+    option_first.option_dates["items"][0]["exp_date"],
 )
 print(option_quote)
 
 # Get option greeks
 option_greeks = option_first.get_greek_options(
-    "INTC", option_first.option_dates["items"][0]["exp_date"]
+    "INTC",
+    option_first.option_dates["items"][0]["exp_date"],
 )
 print(option_greeks)
 
 print(
-    f"Placing dry option order for {option_quote['items'][0]['opt_symbol']} with a price of {option_quote['items'][0]['ask']}."
+    f"Placing dry option order for {option_quote['items'][0]['opt_symbol']} with a price of {option_quote['items'][0]['ask']}.",
 )
 print("Symbol readable ticker 'INTC'")
 
