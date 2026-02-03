@@ -56,7 +56,7 @@ class SymbolQuote:
 
         """
         self.ft_session: FTSession = ft_session
-        response = self.ft_session.get(url=urls.quote(account, symbol))
+        response = self.ft_session._request("get", url=urls.quote(account, symbol))
         if response.status_code != 200:
             raise QuoteRequestError(response.status_code)
         if response.json().get("error", ""):
@@ -125,7 +125,7 @@ class OptionQuote:
             dict: A dict of expiration dates and other information for options on the given symbol.
 
         """
-        response = self.ft_session.get(url=urls.option_dates(symbol))
+        response = self.ft_session._request("get", url=urls.option_dates(symbol))
         return response.json()
 
     def get_option_quote(self, symbol: str, date: str) -> dict[Any, Any]:
@@ -138,7 +138,7 @@ class OptionQuote:
             dict: A dictionary containing the quote  and other information for the given option symbol.
 
         """
-        response = self.ft_session.get(url=urls.option_quotes(symbol, date))
+        response = self.ft_session._request("get", url=urls.option_quotes(symbol, date))
         return response.json()
 
     def get_greek_options(self, symbol: str, exp_date: str):
@@ -158,5 +158,5 @@ class OptionQuote:
             "root_symbol": symbol,
             "exp_date": exp_date,
         }
-        response = self.ft_session.post(url=urls.greek_options(), data=data)
+        response = self.ft_session._request("post", url=urls.greek_options(), data=data)
         return response.json()
