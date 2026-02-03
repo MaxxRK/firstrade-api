@@ -47,11 +47,11 @@ print(f"Fractional: {quote.is_fractional}")
 print(f"Company Name: {quote.company_name}")
 
 # Get positions and print them out for an account.
-positions = ft_accounts.get_positions(account=ft_accounts.account_numbers[1])
+positions = ft_accounts.get_positions(account=ft_accounts.account_numbers[0])
 print(positions)
 for item in positions["items"]:
     print(
-        f"Quantity {item['quantity']} of security {item['symbol']} held in account {ft_accounts.account_numbers[1]}"
+        f"Quantity {item['quantity']} of security {item['symbol']} held in account {ft_accounts.account_numbers[0]}"
     )
 
 # Get account history (past 200)
