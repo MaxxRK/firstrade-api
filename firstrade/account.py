@@ -15,6 +15,7 @@ from firstrade.exceptions import (
 
 logger = logging.getLogger(__name__)
 
+
 class FTSession:
     """Class creating a session for Firstrade.
 
@@ -57,17 +58,7 @@ class FTSession:
 
     """
 
-    def __init__(
-        self,
-        username: str,
-        password: str,
-        pin: str = "",
-        email: str = "",
-        phone: str = "",
-        mfa_secret: str = "",
-        profile_path: str | None = None,
-        debug: bool = False
-    ) -> None:
+    def __init__(self, username: str, password: str, pin: str = "", email: str = "", phone: str = "", mfa_secret: str = "", profile_path: str | None = None, debug: bool = False) -> None:
         """Initialize a new instance of the FTSession class.
 
         Args:
@@ -93,6 +84,7 @@ class FTSession:
             logging.basicConfig(level=logging.DEBUG)
             # Enable HTTP connection debug output
             import http.client as http_client
+
             http_client.HTTPConnection.debuglevel = 1
             # requests logging too
             logging.getLogger("requests.packages.urllib3").setLevel(logging.DEBUG)
@@ -126,7 +118,7 @@ class FTSession:
         }
 
         response: requests.Response = self._request(
-            "post",
+            method="post",
             url=urls.login(),
             data=data,
         )
@@ -139,7 +131,7 @@ class FTSession:
             self.session.headers["sid"] = self.login_json["sid"]
             return False
         self.t_token: str | None = self.login_json.get("t_token")
-        if not self.mfa_secret:
+        if not self.login_json.get("mfa"):
             self.otp_options: str | None = self.login_json.get("otp")
         if response.status_code != 200:
             raise LoginRequestError(response.status_code)
@@ -157,15 +149,23 @@ class FTSession:
 
     def login_two(self, code: str) -> None:
         """Finish login to the Firstrade platform."""
-        data: dict[str, str | None] = {
-            "otpCode": code,
-            "verificationSid": self.session.headers["sid"],
-            "remember_for": "30",
-            "t_token": self.t_token,
-        }
-        response: requests.Response = self._request("post", urls.verify_pin(), data=data)
+        data: dict[str, str | None] = {}
+        if self.login_json.get("mfa"):
+            data.update({
+                "mfaCode": code,
+                "remember_for": "30",
+                "t_token": self.t_token,
+            })
+        else:
+            data: dict[str, str | None] = {
+                "otpCode": code,
+                "verificationSid": self.session.headers["sid"],
+                "remember_for": "30",
+                "t_token": self.t_token,
+            }
+        response: requests.Response = self._request(method="post", url=urls.verify_pin(), data=data)
         self.login_json: dict[str, str] = response.json()
-        if not self.login_json["error"]:
+        if self.login_json["error"]:
             raise LoginResponseError(self.login_json["error"])
         self.session.headers["ftat"] = self.login_json["ftat"]
         self.session.headers["sid"] = self.login_json["sid"]
@@ -232,24 +232,29 @@ class FTSession:
         """
         response: requests.Response | None = None
         data: dict[str, str | None] = {}
-
         if self.pin:
             response: requests.Response = self._handle_pin_mfa(data)
-        elif (self.email or self.phone) and not self.mfa_secret:
+            self.login_json = response.json()
+        elif (self.email or self.phone) and not self.login_json.get("mfa"):
             response: requests.Response = self._handle_otp_mfa(data)
+            self.login_json = response.json()
         elif self.mfa_secret:
             response: requests.Response = self._handle_secret_mfa(data)
+            self.login_json = response.json()
+        elif self.login_json.get("mfa"):
+            pass  # MFA handling without user provided secret in login_two
         else:
             error_msg = "MFA required but no valid MFA method was provided (pin, email/phone, or mfa_secret)."
             raise LoginError(error_msg)
 
-        self.login_json = response.json()
         if self.login_json["error"]:
             raise LoginResponseError(self.login_json["error"])
 
         if self.pin or self.mfa_secret:
             self.session.headers["sid"] = self.login_json["sid"]
             return False
+        if self.login_json.get("mfa") and not self.mfa_secret:
+            return True
         self.session.headers["sid"] = self.login_json["verificationSid"]
         return True
 
@@ -310,6 +315,7 @@ class FTSession:
             # Log pretty JSON (if any)
             try:
                 import json as pyjson
+
                 # This automatically uses requests decompression if gzip is set
                 json_body = resp.json()
                 pretty = pyjson.dumps(json_body, indent=2)
@@ -411,7 +417,8 @@ class FTAccountData:
         if date_range == "cust" and custom_range is None:
             raise ValueError("Custom range required.")
         response: requests.Response = self.session._request(
-            "get", urls.account_history(account, date_range, custom_range),
+            "get",
+            urls.account_history(account, date_range, custom_range),
         )
         return response.json()
 
