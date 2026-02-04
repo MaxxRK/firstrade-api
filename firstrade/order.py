@@ -166,7 +166,7 @@ class Order:
             data["limit_price"] = price
         if price_type in {PriceType.STOP, PriceType.STOP_LIMIT}:
             data["stop_price"] = stop_price
-        response: requests.Response = self.ft_session.post(url=urls.order(), data=data)
+        response: requests.Response = self.ft_session._request("post", url=urls.order(), data=data)
         if response.status_code != 200 or response.json()["error"] != "":
             return response.json()
         preview_data = response.json()
@@ -174,7 +174,7 @@ class Order:
             return preview_data
         data["preview"] = "false"
         data["stage"] = "P"
-        response = self.ft_session.post(url=urls.order(), data=data)
+        response = self.ft_session._request("post", url=urls.order(), data=data)
         return response.json()
 
     def place_option_order(
@@ -232,11 +232,11 @@ class Order:
         if price_type in {PriceType.STOP, PriceType.STOP_LIMIT}:
             data["stop_price"] = stop_price
 
-        response = self.ft_session.post(url=urls.option_order(), data=data)
+        response = self.ft_session._request("post", url=urls.option_order(), data=data)
         if response.status_code != 200 or response.json()["error"] != "":
             return response.json()
         if dry_run:
             return response.json()
         data["preview"] = "false"
-        response = self.ft_session.post(url=urls.option_order(), data=data)
+        response = self.ft_session._request("post", url=urls.option_order(), data=data)
         return response.json()

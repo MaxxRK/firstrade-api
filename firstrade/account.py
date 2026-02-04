@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pyotp
+import logging
 import requests
 
 from firstrade import urls
@@ -12,6 +13,7 @@ from firstrade.exceptions import (
     LoginResponseError,
 )
 
+logger = logging.getLogger(__name__)
 
 class FTSession:
     """Class creating a session for Firstrade.
@@ -22,18 +24,19 @@ class FTSession:
     Attributes:
         username (str): Firstrade login username.
         password (str): Firstrade login password.
-        pin (str): Firstrade login pin.
+        pin (str, optional): Firstrade login pin.
         email (str, optional): Firstrade MFA email.
         phone (str, optional): Firstrade MFA phone number.
         mfa_secret (str, optional): Secret key for generating MFA codes.
         profile_path (str, optional): The path where the user wants to save the cookie pkl file.
+        debug (bool, optional): Log HTTP requests/responses if true. DO NOT POST YOUR LOGS ONLINE.
         t_token (str, optional): Token used for MFA.
         otp_options (dict, optional): Options for OTP (One-Time Password) if MFA is enabled.
         login_json (dict, optional): JSON response from the login request.
         session (requests.Session): The requests session object used for making HTTP requests.
 
     Methods:
-        __init__(username, password, pin=None, email=None, phone=None, mfa_secret=None, profile_path=None):
+        __init__(username, password, pin=None, email=None, phone=None, mfa_secret=None, profile_path=None, debug=False):
             Initializes a new instance of the FTSession class.
         login():
             Validates and logs into the Firstrade platform.
@@ -49,6 +52,8 @@ class FTSession:
             Masks the email for use in the API.
         _handle_mfa():
             Handles multi-factor authentication.
+        _request(method, url, **kwargs):
+            HTTP requests wrapper to the API.
 
     """
 
@@ -61,16 +66,19 @@ class FTSession:
         phone: str = "",
         mfa_secret: str = "",
         profile_path: str | None = None,
+        debug: bool = False
     ) -> None:
         """Initialize a new instance of the FTSession class.
 
         Args:
             username (str): Firstrade login username.
             password (str): Firstrade login password.
-            pin (str): Firstrade login pin.
+            pin (str, optional): Firstrade login pin.
             email (str, optional): Firstrade MFA email.
             phone (str, optional): Firstrade MFA phone number.
+            mfa_secret (str, optional): Firstrade MFA secret key to generate TOTP.
             profile_path (str, optional): The path where the user wants to save the cookie pkl file.
+            debug (bool, optional): Log HTTP requests/responses if true. DO NOT POST YOUR LOGS ONLINE.
 
         """
         self.username: str = username
@@ -80,6 +88,15 @@ class FTSession:
         self.phone: str = phone
         self.mfa_secret: str = mfa_secret
         self.profile_path: str | None = profile_path
+        self.debug: bool = debug
+        if self.debug:
+            logging.basicConfig(level=logging.DEBUG)
+            # Enable HTTP connection debug output
+            import http.client as http_client
+            http_client.HTTPConnection.debuglevel = 1
+            # requests logging too
+            logging.getLogger("requests.packages.urllib3").setLevel(logging.DEBUG)
+            logging.getLogger("requests.packages.urllib3").propagate = True
         self.t_token: str | None = None
         self.otp_options: list[dict[str, str]] | None = None
         self.login_json: dict[str, str] = {}
@@ -100,7 +117,7 @@ class FTSession:
         ftat: str = self._load_cookies()
         if not ftat:
             self.session.headers["ftat"] = ftat
-        response: requests.Response = self.session.get(url="https://api3x.firstrade.com/", timeout=10)
+        response: requests.Response = self._request("get", url="https://api3x.firstrade.com/", timeout=10)
         self.session.headers["access-token"] = urls.access_token()
 
         data: dict[str, str] = {
@@ -108,7 +125,8 @@ class FTSession:
             "password": r"" + self.password,
         }
 
-        response: requests.Response = self.session.post(
+        response: requests.Response = self._request(
+            "post",
             url=urls.login(),
             data=data,
         )
@@ -145,7 +163,7 @@ class FTSession:
             "remember_for": "30",
             "t_token": self.t_token,
         }
-        response: requests.Response = self.session.post(urls.verify_pin(), data=data)
+        response: requests.Response = self._request("post", urls.verify_pin(), data=data)
         self.login_json: dict[str, str] = response.json()
         if not self.login_json["error"]:
             raise LoginResponseError(self.login_json["error"])
@@ -242,7 +260,7 @@ class FTSession:
             "remember_for": "30",
             "t_token": self.t_token,
         })
-        return self.session.post(urls.verify_pin(), data=data)
+        return self._request("post", urls.verify_pin(), data=data)
 
     def _handle_otp_mfa(self, data: dict[str, str | None]) -> requests.Response:
         """Handle email/phone OTP-based MFA."""
@@ -258,7 +276,7 @@ class FTSession:
                 })
                 break
 
-        return self.session.post(urls.request_code(), data=data)
+        return self._request("post", urls.request_code(), data=data)
 
     def _handle_secret_mfa(self, data: dict[str, str | None]) -> requests.Response:
         """Handle MFA secret-based authentication."""
@@ -268,7 +286,42 @@ class FTSession:
             "remember_for": "30",
             "t_token": self.t_token,
         })
-        return self.session.post(urls.verify_pin(), data=data)
+        return self._request("post", urls.verify_pin(), data=data)
+
+    def _request(self, method, url, **kwargs):
+        """Send HTTP request and log the full response content if debug=True."""
+        resp = self.session.request(method, url, **kwargs)
+
+        if self.debug:
+            # Suppress urllib3 / http.client debug so we only see this log
+            logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+            # Basic request info
+            logger.debug(f">>> {method.upper()} {url}")
+            logger.debug(f"<<< Status: {resp.status_code}")
+            logger.debug(f"<<< Headers: {resp.headers}")
+
+            # Log raw bytes length
+            try:
+                logger.debug(f"<<< Raw bytes length: {len(resp.content)}")
+            except Exception as e:
+                logger.debug(f"<<< Could not read raw bytes: {e}")
+
+            # Log pretty JSON (if any)
+            try:
+                import json as pyjson
+                # This automatically uses requests decompression if gzip is set
+                json_body = resp.json()
+                pretty = pyjson.dumps(json_body, indent=2)
+                logger.debug(f"<<< JSON body:\n{pretty}")
+            except Exception as e:
+                # If JSON decoding fails, fallback to raw text
+                try:
+                    logger.debug(f"<<< Body (text):\n{resp.text}")
+                except Exception as e2:
+                    logger.debug(f"<<< Could not read body text: {e2}")
+
+        return resp
 
     def __getattr__(self, name: str) -> object:
         """Forward unknown attribute access to session object.
@@ -297,9 +350,9 @@ class FTAccountData:
         self.all_accounts: list[dict[str, object]] = []
         self.account_numbers: list[str] = []
         self.account_balances: dict[str, object] = {}
-        response: requests.Response = self.session.get(url=urls.user_info())
+        response: requests.Response = self.session._request("get", url=urls.user_info())
         self.user_info: dict[str, object] = response.json()
-        response: requests.Response = self.session.get(urls.account_list())
+        response: requests.Response = self.session._request("get", urls.account_list())
         if response.status_code != 200 or response.json()["error"] != "":
             raise AccountResponseError(response.json()["error"])
         self.all_accounts = response.json()
@@ -317,7 +370,7 @@ class FTAccountData:
             dict: Dict of the response from the API.
 
         """
-        response: requests.Response = self.session.get(urls.account_balances(account))
+        response: requests.Response = self.session._request("get", urls.account_balances(account))
         return response.json()
 
     def get_positions(self, account: str) -> dict[str, object]:
@@ -330,7 +383,7 @@ class FTAccountData:
             dict: Dict of the response from the API.
 
         """
-        response = self.session.get(urls.account_positions(account))
+        response = self.session._request("get", urls.account_positions(account))
         return response.json()
 
     def get_account_history(
@@ -357,8 +410,8 @@ class FTAccountData:
         """
         if date_range == "cust" and custom_range is None:
             raise ValueError("Custom range required.")
-        response: requests.Response = self.session.get(
-            urls.account_history(account, date_range, custom_range),
+        response: requests.Response = self.session._request(
+            "get", urls.account_history(account, date_range, custom_range),
         )
         return response.json()
 
@@ -372,7 +425,7 @@ class FTAccountData:
             list: A list of dictionaries, each containing details about an order.
 
         """
-        response = self.session.get(url=urls.order_list(account))
+        response = self.session._request("get", url=urls.order_list(account))
         return response.json()
 
     def cancel_order(self, order_id: str) -> dict[str, object]:
@@ -389,7 +442,7 @@ class FTAccountData:
             "order_id": order_id,
         }
 
-        response = self.session.post(url=urls.cancel_order(), data=data)
+        response = self.session._request("post", url=urls.cancel_order(), data=data)
         return response.json()
 
     def get_balance_overview(self, account: str, keywords: list[str] | None = None) -> dict[str, object]:
