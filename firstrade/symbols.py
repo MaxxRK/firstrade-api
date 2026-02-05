@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List, Tuple, Dict, Optional
 
 from firstrade import urls
 from firstrade.account import FTSession
@@ -160,3 +160,93 @@ class OptionQuote:
         }
         response = self.ft_session._request("post", url=urls.greek_options(), data=data)
         return response.json()
+
+class SymbolOHLC:
+    """Data class representing OHLC (Open, High, Low, Close) price data
+    for a given symbol.
+
+    Attributes:
+        ft_session (FTSession): The session object used for making HTTP requests
+            to Firstrade.
+        symbol (str): The trading symbol for which OHLC data is retrieved.
+        range (str): The time range for the OHLC data.
+        start_of_day (int, optional): Unix timestamp in milliseconds representing the
+            start of the OHLC data.
+        ohlc_raw (list): Raw OHLC data returned by the API.
+        vol_raw (list): Raw volume data returned by the API.
+        candles (list): A list of parsed OHLC candles in the format:
+            (timestamp_ms, open, high, low, close, volume).
+    """
+
+    def __init__(self, ft_session: FTSession, symbol: str, range_: str = "1d"):
+        """Initialize a new instance of the SymbolOHLC class.
+
+        Args:
+            ft_session (FTSession): The session object used for making HTTP
+                requests to Firstrade.
+            symbol (str): The symbol for which OHLC data is retrieved.
+            range_ (str, optional): The time range for the OHLC data (24h, 1d, 1w, 1m, 1y).
+
+        Raises:
+            QuoteRequestError: If the OHLC request fails with a non-200
+                status code.
+            QuoteResponseError: If the OHLC response contains an error
+                message.
+        """
+        self.ft_session = ft_session
+        self.symbol: str = symbol
+        self.range: str = range_
+
+        response = self.ft_session._request(
+            method="get",
+            url=urls.ohlc(symbol, range_),
+        )
+
+        if response.status_code != 200:
+            raise QuoteRequestError(response.status_code)
+
+        data = response.json()
+        if data.get("error", ""):
+            raise QuoteResponseError(symbol, data["error"])
+
+        result = data["result"]
+
+        self.start_of_day: Optional[int] = result.get("startOfDay")
+        self.ohlc_raw: list = result["ohlc"]
+        self.vol_raw: list = result.get("vol", [])
+
+        self.candles: List[
+            Tuple[int, float, float, float, float, int]
+        ] = []
+
+        self._parse_ohlc_and_volume()
+
+    def _parse_ohlc_and_volume(self) -> None:
+        """Parse OHLC and volume data returned by the API.
+
+        The API provides OHLC candles and volume as separate arrays,
+        each keyed by the same millisecond timestamp.
+
+        This method aligns volume with its corresponding candle and
+        populates the `candles` attribute.
+        """
+        volume_map: Dict[int, int] = {
+            ts: vol for ts, vol in self.vol_raw
+        }
+
+        for entry in self.ohlc_raw:
+            # OHLC may be [ts, o, h, l, c] or [ts, o, h, l, c, vol]
+            timestamp = entry[0]
+            open_, high, low, close = entry[1:5]
+
+            # Prefer volume from vol[]; fall back to embedded volume if present
+            if timestamp in volume_map:
+                volume = volume_map[timestamp]
+            elif len(entry) == 6:
+                volume = entry[5]
+            else:
+                raise KeyError(f"Missing volume for timestamp {timestamp}")
+
+            self.candles.append(
+                (timestamp, open_, high, low, close, volume)
+            )
