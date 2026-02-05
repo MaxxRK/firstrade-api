@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Dict, Optional
+from typing import Any
 
 from firstrade import urls
 from firstrade.account import FTSession
@@ -161,9 +161,9 @@ class OptionQuote:
         response = self.ft_session._request("post", url=urls.greek_options(), data=data)
         return response.json()
 
+
 class SymbolOHLC:
-    """Data class representing OHLC (Open, High, Low, Close) price data
-    for a given symbol.
+    """Data class representing OHLC (Open, High, Low, Close) price data for a given symbol.
 
     Attributes:
         ft_session (FTSession): The session object used for making HTTP requests
@@ -176,6 +176,7 @@ class SymbolOHLC:
         vol_raw (list): Raw volume data returned by the API.
         candles (list): A list of parsed OHLC candles in the format:
             (timestamp_ms, open, high, low, close, volume).
+
     """
 
     def __init__(self, ft_session: FTSession, symbol: str, range_: str = "1d"):
@@ -192,6 +193,7 @@ class SymbolOHLC:
                 status code.
             QuoteResponseError: If the OHLC response contains an error
                 message.
+
         """
         self.ft_session = ft_session
         self.symbol: str = symbol
@@ -215,9 +217,7 @@ class SymbolOHLC:
         self.ohlc_raw: list = result["ohlc"]
         self.vol_raw: list = result.get("vol", [])
 
-        self.candles: List[
-            Tuple[int, float, float, float, float, int]
-        ] = []
+        self.candles: List[Tuple[int, float, float, float, float, int]] = []
 
         self._parse_ohlc_and_volume()
 
@@ -230,9 +230,7 @@ class SymbolOHLC:
         This method aligns volume with its corresponding candle and
         populates the `candles` attribute.
         """
-        volume_map: Dict[int, int] = {
-            ts: vol for ts, vol in self.vol_raw
-        }
+        volume_map: Dict[int, int] = {ts: vol for ts, vol in self.vol_raw}
 
         for entry in self.ohlc_raw:
             # OHLC may be [ts, o, h, l, c] or [ts, o, h, l, c, vol]
@@ -248,5 +246,5 @@ class SymbolOHLC:
                 raise KeyError(f"Missing volume for timestamp {timestamp}")
 
             self.candles.append(
-                (timestamp, open_, high, low, close, volume)
+                (timestamp, open_, high, low, close, volume),
             )
