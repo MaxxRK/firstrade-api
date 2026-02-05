@@ -29,19 +29,17 @@ class Duration(enum.StrEnum):
     """Enum for valid order durations.
 
     Attributes:
-        DAY (str): Day order.
-        GT90 (str): Good till 90 days order.
-        PRE_MARKET (str): Pre-market order.
-        AFTER_MARKET (str): After-market order.
-        DAY_EXT (str): Day extended order.
+        DAY (str): Day order (9:30 AM - 4 PM ET)
+        DAY_EXT (str): Day extended order (8 AM - 8 PM ET).
+        OVERNIGHT (str): Overnight order (8 PM - 4 AM ET).
+        GT90 (str): Good till 90 days order (9:30 AM - 4 PM ET).
 
     """
 
     DAY = "0"
-    GT90 = "1"
-    PRE_MARKET = "A"
-    AFTER_MARKET = "P"
     DAY_EXT = "D"
+    OVERNIGHT = "N"
+    GT90 = "1"
 
 
 class OrderType(enum.StrEnum):
