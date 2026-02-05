@@ -38,6 +38,14 @@ def quote(account: str, symbol: str) -> str:
     return f"https://api3x.firstrade.com/public/quote?account={account}&q={symbol}"
 
 
+def ohlc(symbol: str, range_: str) -> str:
+    """Open-high-low-close chart data URL for FirstTrade API."""
+    return (
+        "https://api3x.firstrade.com/public/ohlc"
+        f"?symbol={symbol}&range={range_}&_v=v2"
+    )
+
+
 def order() -> str:
     """Place equity order URL for FirstTrade API."""
     return "https://api3x.firstrade.com/private/stock_order"

@@ -106,6 +106,11 @@ if not order_conf.get("error") and "order_id" in order_conf["result"]:
     else:
         print(f"Cannot cancel order: {cancel}.")
 
+
+# Retrieve OHLC data
+ohlc = symbols.SymbolOHLC(ft_ss, "INTC", range_="1y")
+print(f"Open-high-low-close chart data for INTC (first two values, format: <timestamp, open, high, low, close, volume>): {ohlc.candles[:2]}")
+
 # Check orders
 recent_orders = ft_accounts.get_orders(ft_accounts.account_numbers[0])
 print(f"Recent orders: {json.dumps(recent_orders, indent=2)}")

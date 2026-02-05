@@ -33,6 +33,7 @@ The code in `test.py` will:
 - Place a dry run market order for 'INTC' on the first account in the `account_numbers` list
 - Print out the order confirmation
 - Contains a cancel order example
+- Get OHLC data
 - Get an option Dates, Quotes, and Greeks
 - Place a dry run option order
 ---
@@ -41,6 +42,7 @@ The code in `test.py` will:
 
 - [x] Login (With all 2FA methods now supported!) 
 - [x] Get Quotes
+- [x] Get OHLC (timestamp, open, high, low, close, volume)
 - [x] Get Account Data
 - [x] Place Orders and Receive order confirmation
 - [x] Get Currently Held Positions
