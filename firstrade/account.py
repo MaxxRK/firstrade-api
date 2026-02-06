@@ -1,5 +1,3 @@
-from turtle import save
-from requests.sessions import session
 import json
 from pathlib import Path
 
