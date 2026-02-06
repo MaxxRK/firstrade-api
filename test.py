@@ -1,13 +1,15 @@
 #!/usr/bin/python3
 
-from firstrade import account, order, symbols
 import json
+
+from firstrade import account, order, symbols
 
 # Create a session
 # mfa_secret is the secret key to generate TOTP (not the backup code), see:
 # https://help.firstrade.info/en/articles/9260184-two-factor-authentication-2fa
-ft_ss = account.FTSession(username="", password="", mfa_secret="")
-#ft_ss = account.FTSession(username="", password="", email="", profile_path="")
+# save session flag now required to save cookies json file
+ft_ss = account.FTSession(username="", password="", mfa_secret="", save_session=True)
+# ft_ss = account.FTSession(username="", password="", email="", profile_path="")
 need_code = ft_ss.login()
 if need_code:
     code = input("Please enter the pin sent to your email/phone: ")
@@ -92,7 +94,7 @@ print(f"Preview of an order to buy 1 share of INTC: {json.dumps(order_conf, inde
 if order_conf.get("error"):
     print(f"Error placing order: {order_conf['error']} : {order_conf['message']}")
 elif "order_id" not in order_conf["result"]:
-    print(f"Dry run complete!")
+    print("Dry run complete!")
 else:
     print("Order placed successfully!")
     print(f"\tOrder ID: {order_conf['result']['order_id']}.")
@@ -130,7 +132,7 @@ option_quote = option_first.get_option_quote(
 )
 limited_option_quote = {
     **option_quote,
-    "items": option_quote["items"][:2]
+    "items": option_quote["items"][:2],
 }
 print(f"Option quote for INTC (limited to the first two items): {json.dumps(limited_option_quote, indent=2)}")
 
@@ -141,9 +143,9 @@ option_greeks = option_first.get_greek_options(
 )
 limited_option_greeks = {
     **option_greeks,
-    "chains": option_greeks["chains"][:2]
+    "chains": option_greeks["chains"][:2],
 }
-print(f"Option greeks at {option_first.option_dates["items"][0]["exp_date"]} for INTC (limited to the first two chains): {json.dumps(limited_option_greeks, indent=2)}")
+print(f"Option greeks at {option_first.option_dates['items'][0]['exp_date']} for INTC (limited to the first two chains): {json.dumps(limited_option_greeks, indent=2)}")
 
 # Place dry option order
 option_order = ft_order.place_option_order(
@@ -159,4 +161,4 @@ option_order = ft_order.place_option_order(
 print(f"Preview of an option order for {option_quote['items'][0]['opt_symbol']}: {json.dumps(option_order, indent=2)}")
 
 # Delete the session cookie
-#ft_ss.delete_cookies()
+# ft_ss.delete_cookies()

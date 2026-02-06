@@ -1,3 +1,5 @@
+from turtle import save
+from requests.sessions import session
 import json
 from pathlib import Path
 
@@ -58,7 +60,7 @@ class FTSession:
 
     """
 
-    def __init__(self, username: str, password: str, pin: str = "", email: str = "", phone: str = "", mfa_secret: str = "", profile_path: str | None = None, debug: bool = False) -> None:
+    def __init__(self, username: str, password: str, pin: str = "", email: str = "", phone: str = "", mfa_secret: str = "", profile_path: str | None = None, *, save_session: bool = False, debug: bool = False) -> None:
         """Initialize a new instance of the FTSession class.
 
         Args:
@@ -68,7 +70,8 @@ class FTSession:
             email (str, optional): Firstrade MFA email.
             phone (str, optional): Firstrade MFA phone number.
             mfa_secret (str, optional): Firstrade MFA secret key to generate TOTP.
-            profile_path (str, optional): The path where the user wants to save the cookie pkl file.
+            profile_path (str, optional): The path where the user wants to save the cookie json file.
+            save_session (bool, optional): Save session cookies if true.
             debug (bool, optional): Log HTTP requests/responses if true. DO NOT POST YOUR LOGS ONLINE.
 
         """
@@ -79,6 +82,7 @@ class FTSession:
         self.phone: str = phone
         self.mfa_secret: str = mfa_secret
         self.profile_path: str | None = profile_path
+        self.save_session: bool = save_session  # Flag to save session cookies
         self.debug: bool = debug
         if self.debug:
             logging.basicConfig(level=logging.DEBUG)
@@ -94,7 +98,7 @@ class FTSession:
         self.login_json: dict[str, str] = {}
         self.session = requests.Session()
 
-    def login(self) -> bool:
+    def login(self, session_token: str = "") -> bool:
         """Validate and log into the Firstrade platform.
 
         This method sets up the session headers, loads cookies if available, and performs the login request.
@@ -106,7 +110,8 @@ class FTSession:
 
         """
         self.session.headers.update(urls.session_headers())
-        ftat: str = self._load_cookies()
+        # Allow providing "ftat" token from an external source
+        ftat: str = session_token or self._load_cookies()
         if ftat:
             self.session.headers["ftat"] = ftat
         response: requests.Response = self._request("get", url="https://api3x.firstrade.com/", timeout=10)
@@ -144,7 +149,8 @@ class FTSession:
             return True
         self.session.headers["ftat"] = self.login_json["ftat"]
         self.session.headers["sid"] = self.login_json["sid"]
-        self._save_cookies()
+        if self.save_session:
+            self._save_cookies()
         return False
 
     def login_two(self, code: str) -> None:
@@ -169,7 +175,8 @@ class FTSession:
             raise LoginResponseError(self.login_json["error"])
         self.session.headers["ftat"] = self.login_json["ftat"]
         self.session.headers["sid"] = self.login_json["sid"]
-        self._save_cookies()
+        if self.save_session:
+            self._save_cookies()
 
     def delete_cookies(self) -> None:
         """Delete the session cookies."""
@@ -179,7 +186,8 @@ class FTSession:
     def _load_cookies(self) -> str:
         """Check if session cookies were saved.
 
-        Returns:
+        Returns
+        -------
             str: The saved session token.
 
         """
@@ -196,7 +204,8 @@ class FTSession:
 
     def _save_cookies(self) -> str | None:
         """Save session cookies to a file."""
-        if self.profile_path is not None:
+        # Allow providing "ftat" token from an external source
+        if self.profile_path is not None and not self.session_token:
             directory = Path(self.profile_path)
             if not directory.exists():
                 directory.mkdir(parents=True)
