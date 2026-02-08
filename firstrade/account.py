@@ -58,7 +58,19 @@ class FTSession:
 
     """
 
-    def __init__(self, username: str, password: str, pin: str = "", email: str = "", phone: str = "", mfa_secret: str = "", profile_path: str | None = None, *, save_session: bool = False, debug: bool = False) -> None:
+    def __init__(
+        self,
+        username: str = "",
+        password: str = "",
+        pin: str = "",
+        email: str = "",
+        phone: str = "",
+        mfa_secret: str = "",
+        profile_path: str | None = None,
+        *,
+        save_session: bool = False,
+        debug: bool = False
+    ) -> None:
         """Initialize a new instance of the FTSession class.
 
         Args:
@@ -92,7 +104,7 @@ class FTSession:
             logging.getLogger("requests.packages.urllib3").setLevel(logging.DEBUG)
             logging.getLogger("requests.packages.urllib3").propagate = True
         self.t_token: str | None = None
-        self.otp_options: list[dict[str, str]] | None = None
+        self.otp_options: str | list[dict[str, str]] | None = None
         self.login_json: dict[str, str] = {}
         self.session = requests.Session()
 
@@ -111,7 +123,7 @@ class FTSession:
         ftat: str = self._load_cookies()
         if ftat:
             self.session.headers["ftat"] = ftat
-        response: requests.Response = self._request("get", url="https://api3x.firstrade.com/", timeout=10)
+        response: requests.Response = self._request("get", url="https://api3x.firstrade.com/", timeout=10)  # type: ignore[arg-type]
         self.session.headers["access-token"] = urls.access_token()
 
         data: dict[str, str] = {
@@ -134,7 +146,7 @@ class FTSession:
             return False
         self.t_token: str | None = self.login_json.get("t_token")
         if not self.login_json.get("mfa"):
-            self.otp_options: str | None = self.login_json.get("otp")
+            self.otp_options = self.login_json.get("otp")
         if response.status_code != 200:
             raise LoginRequestError(response.status_code)
         if self.login_json["error"]:
@@ -191,7 +203,25 @@ class FTSession:
             "cookies": cookies or "",
         }
 
-    def _load_cookies(self) -> str:
+    def build_session_from_tokens(self, tokens: dict[str, str | bytes | dict[str, str] | None]) -> None:
+        """Build the session headers and cookies from provided tokens."""
+        self.session.headers.update(urls.session_headers())
+        if tokens:
+            access_token = tokens.get("access-token")
+            ftat_token = tokens.get("ftat")
+            sid_token = tokens.get("sid")
+
+            if isinstance(access_token, (str, bytes)):
+                self.session.headers.update({"access-token": access_token})
+            if isinstance(ftat_token, (str, bytes)):
+                self.session.headers.update({"ftat": ftat_token})
+            if isinstance(sid_token, (str, bytes)):
+                self.session.headers.update({"sid": sid_token})
+            cookies = tokens.get("cookies")
+            if isinstance(cookies, dict):
+                self.session.cookies.update(cookies)  # type: ignore[arg-type]
+
+    def _load_cookies(self) -> str | None:
         """Check if session cookies were saved.
 
         Returns
@@ -311,9 +341,9 @@ class FTSession:
         })
         return self._request("post", urls.verify_pin(), data=data)
 
-    def _request(self, method, url, **kwargs):
+    def _request(self, method: str, url: str, **kwargs: object) -> requests.Response:
         """Send HTTP request and log the full response content if debug=True."""
-        resp = self.session.request(method, url, **kwargs)
+        resp = self.session.request(method, url, **kwargs)  # type: ignore[no-untyped-call]
 
         if self.debug:
             # Suppress urllib3 / http.client debug so we only see this log
@@ -359,6 +389,7 @@ class FTSession:
         """
         return getattr(self.session, name)
 
+
 class FTAccountData:
     """Dataclass for storing account information."""
 
@@ -376,7 +407,7 @@ class FTAccountData:
         response: requests.Response = self.session._request("get", url=urls.user_info())
         self.user_info: dict[str, object] = response.json()
         response: requests.Response = self.session._request("get", urls.account_list())
-        if response.status_code != 200 or response.json()["error"] != "":
+        if response.status_code != 200 or response.json()["error"]:
             raise AccountResponseError(response.json()["error"])
         self.all_accounts = response.json()
         for item in self.all_accounts["items"]:
