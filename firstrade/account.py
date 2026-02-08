@@ -96,7 +96,7 @@ class FTSession:
         self.login_json: dict[str, str] = {}
         self.session = requests.Session()
 
-    def login(self, session_token: str = "") -> bool:
+    def login(self) -> bool:
         """Validate and log into the Firstrade platform.
 
         This method sets up the session headers, loads cookies if available, and performs the login request.
@@ -108,8 +108,7 @@ class FTSession:
 
         """
         self.session.headers.update(urls.session_headers())
-        # Allow providing "ftat" token from an external source
-        ftat: str = session_token or self._load_cookies()
+        ftat: str = self._load_cookies()
         if ftat:
             self.session.headers["ftat"] = ftat
         response: requests.Response = self._request("get", url="https://api3x.firstrade.com/", timeout=10)
@@ -181,6 +180,17 @@ class FTSession:
         path: Path = Path(self.profile_path) / f"ft_cookies{self.username}.json" if self.profile_path is not None else Path(f"ft_cookies{self.username}.json")
         path.unlink()
 
+    def get_tokens(self) -> dict[str, str | bytes | dict[str, str] | None]:
+        """Return the current session tokens (access_token, ftat, sid and cookies)."""
+        cookies: dict[str, str] = self.session.cookies.get_dict()
+
+        return {
+            "access-token": self.session.headers.get("access-token"),
+            "ftat": self.session.headers.get("ftat"),
+            "sid": self.session.headers.get("sid"),
+            "cookies": cookies or "",
+        }
+
     def _load_cookies(self) -> str:
         """Check if session cookies were saved.
 
@@ -203,16 +213,17 @@ class FTSession:
     def _save_cookies(self) -> str | None:
         """Save session cookies to a file."""
         # Allow providing "ftat" token from an external source
-        if self.profile_path is not None and not self.session_token:
-            directory = Path(self.profile_path)
-            if not directory.exists():
-                directory.mkdir(parents=True)
-            path: Path = directory / f"ft_cookies{self.username}.json"
-        else:
-            path = Path(f"ft_cookies{self.username}.json")
-        with path.open("w") as f:
-            ftat: str | None = self.session.headers.get("ftat")
-            json.dump(obj=ftat, fp=f)
+        if self.save_session:
+            if self.profile_path:
+                directory = Path(self.profile_path)
+                if not directory.exists():
+                    directory.mkdir(parents=True)
+                path: Path = directory / f"ft_cookies{self.username}.json"
+            else:
+                path = Path(f"ft_cookies{self.username}.json")
+            with path.open("w") as f:
+                ftat: str | None = self.session.headers.get("ftat")
+                json.dump(obj=ftat, fp=f)
 
     @staticmethod
     def _mask_email(email: str) -> str:
@@ -347,7 +358,6 @@ class FTSession:
 
         """
         return getattr(self.session, name)
-
 
 class FTAccountData:
     """Dataclass for storing account information."""
