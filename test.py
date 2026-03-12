@@ -179,9 +179,6 @@ data = wl.add_symbol(list_id, "AAPL")
 if data['statusCode'] != 200 or len(data['error']) > 0:
     raise Exception("Error while adding a symbol to watchlist #{list_id}.")
 watchlist_content = wl.get_watchlist(list_id)
-if data['statusCode'] != 200 or len(data['error']) > 0:
-    raise Exception("Error while adding a symbol to watchlist #{list_id}.")
-watchlist_content = wl.get_watchlist(list_id)
 if watchlist_content['statusCode'] != 200 or len(watchlist_content['error']) > 0:
     raise Exception("Error while fetching content of watchlist #{list_id}.")
 watchlist_content = watchlist_content['result']
@@ -189,6 +186,7 @@ print(f"Content of created watchlist ({watchlist_content['name']} #{watchlist_co
 data = wl.delete_watchlist(list_id)
 if data['statusCode'] != 200 or len(data['error']) > 0:
     raise Exception("Error while deleting a watchlist.")
+print(f"Deleted watchlist #{list_id}.")
 
 # Delete the session cookie
 # ft_ss.delete_cookies()
