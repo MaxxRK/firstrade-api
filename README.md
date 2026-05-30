@@ -25,7 +25,7 @@ Install using pypi:
 pip install firstrade
 ```
 
-## Quikstart
+## Quickstart
 
 The code in `test.py` will:
 - Login and print account info.
@@ -36,6 +36,7 @@ The code in `test.py` will:
 - Get OHLC data
 - Get an option Dates, Quotes, and Greeks
 - Place a dry run option order
+- List watchlists, create one, add a symbol to it then delete it
 ---
 
 ## Implemented Features
@@ -51,6 +52,7 @@ The code in `test.py` will:
 - [x] Cancel placed orders
 - [x] Options (Orders, Quotes, Greeks)
 - [x] Order History
+- [x] Manage watchlists
 
 ## TO DO
 

@@ -88,6 +88,31 @@ def option_order() -> str:
     return "https://api3x.firstrade.com/private/option_order"
 
 
+def watchlists() -> str:
+    """Watchlist collection URL for FirstTrade API (list all / create)."""
+    return "https://api3x.firstrade.com/private/watchlists"
+
+
+def watchlist(list_id: int) -> str:
+    """Single watchlist URL for FirstTrade API (get / delete)."""
+    return f"https://api3x.firstrade.com/private/watchlists/{list_id}"
+
+
+def watchlist_items() -> str:
+    """All watchlist items URL for FirstTrade API."""
+    return "https://api3x.firstrade.com/private/all_watchlist_items"
+
+
+def watchlist_item(list_id: int) -> str:
+    """Add item to watchlist URL for FirstTrade API."""
+    return f"https://api3x.firstrade.com/private/watchlist/{list_id}"
+
+
+def watchlist_item_delete(watchlist_id: int) -> str:
+    """Delete a single watchlist item URL for FirstTrade API."""
+    return f"https://api3x.firstrade.com/private/watchlist/{watchlist_id}"
+
+
 def session_headers() -> dict[str, str]:
     """Session headers for FirstTrade API."""
     headers: dict[str, str] = {
