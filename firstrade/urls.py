@@ -51,9 +51,11 @@ def order() -> str:
     return "https://api3x.firstrade.com/private/stock_order"
 
 
-def order_list(account: str) -> str:
+def order_list(account: str, per_page: int = 0) -> str:
     """Retrieve placed order list URL for FirstTrade API."""
-    return f"https://api3x.firstrade.com/private/order_status?account={account}"
+    if per_page == 0:
+        return f"https://api3x.firstrade.com/private/order_status?account={account}"
+    return f"https://api3x.firstrade.com/private/order_status?account={account}&per_page={per_page}"
 
 
 def account_history(account: str, date_range: str, custom_range: list[str] | None) -> str:

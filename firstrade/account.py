@@ -470,17 +470,19 @@ class FTAccountData:
         )
         return response.json()
 
-    def get_orders(self, account: str) -> list[dict[str, object]]:
+    def get_orders(self, account: str, per_page: int = 0) -> list[dict[str, object]]:
         """Retrieve existing order data for a given account.
 
         Args:
             account (str): Account number of the account to retrieve orders for.
+            per_page (int): Number of orders to retrieve per page. Defaults to 0 (all orders).
+
 
         Returns:
             list: A list of dictionaries, each containing details about an order.
 
         """
-        response = self.session._request("get", url=urls.order_list(account))
+        response = self.session._request("get", url=urls.order_list(account, per_page))
         return response.json()
 
     def cancel_order(self, order_id: str) -> dict[str, object]:
