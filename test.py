@@ -114,7 +114,7 @@ ohlc = symbols.SymbolOHLC(ft_ss, "INTC", range_="1y")
 print(f"Open-high-low-close chart data for INTC (first two values, format: <timestamp, open, high, low, close, volume>): {ohlc.candles[:2]}")
 
 # Check orders
-recent_orders = ft_accounts.get_orders(ft_accounts.account_numbers[0])
+recent_orders = ft_accounts.get_orders(ft_accounts.account_numbers[0], per_page=5)
 print(f"Recent orders: {json.dumps(recent_orders, indent=2)}")
 
 # Get option dates for a symbol
@@ -163,28 +163,28 @@ print(f"Preview of an option order for {option_quote['items'][0]['opt_symbol']}:
 
 wl = watchlist.Watchlist(ft_ss)
 data = wl.get_watchlists()
-if data['statusCode'] != 200 or len(data['error']) > 0:
+if data["statusCode"] != 200 or len(data["error"]) > 0:
     raise Exception("Error while fetching watchlists.")
 print("Watchlist(s):")
 print(*[f'#{i["list_id"]}: {i["name"]} (default={i["isDefault"]})' for i in data["items"]], sep="\n")
 
 result = wl.create_watchlist("My Watchlist")
-if result['statusCode'] != 200 or result['result']['result'] != 'success':
+if result["statusCode"] != 200 or result["result"]["result"] != "success":
     raise Exception("Cannot add a new watchlist.")
 print(f"Created a new watchlist with id: #{result['result']['list_id']}")
 
 list_id = result["result"]["list_id"]
 print(f"Adding symbol 'AAPL' to watchlist #{list_id}")
 data = wl.add_symbol(list_id, "AAPL")
-if data['statusCode'] != 200 or len(data['error']) > 0:
+if data["statusCode"] != 200 or len(data["error"]) > 0:
     raise Exception("Error while adding a symbol to watchlist #{list_id}.")
 watchlist_content = wl.get_watchlist(list_id)
-if watchlist_content['statusCode'] != 200 or len(watchlist_content['error']) > 0:
+if watchlist_content["statusCode"] != 200 or len(watchlist_content["error"]) > 0:
     raise Exception("Error while fetching content of watchlist #{list_id}.")
-watchlist_content = watchlist_content['result']
+watchlist_content = watchlist_content["result"]
 print(f"Content of created watchlist ({watchlist_content['name']} #{watchlist_content['list_id']}): {json.dumps(watchlist_content['list_items'], indent=2)}")
 data = wl.delete_watchlist(list_id)
-if data['statusCode'] != 200 or len(data['error']) > 0:
+if data["statusCode"] != 200 or len(data["error"]) > 0:
     raise Exception("Error while deleting a watchlist.")
 print(f"Deleted watchlist #{list_id}.")
 
