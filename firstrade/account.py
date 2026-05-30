@@ -1,8 +1,8 @@
 import json
+import logging
 from pathlib import Path
 
 import pyotp
-import logging
 import requests
 
 from firstrade import urls
@@ -69,7 +69,7 @@ class FTSession:
         profile_path: str | None = None,
         *,
         save_session: bool = False,
-        debug: bool = False
+        debug: bool = False,
     ) -> None:
         """Initialize a new instance of the FTSession class.
 
@@ -350,15 +350,15 @@ class FTSession:
             logging.getLogger("urllib3").setLevel(logging.WARNING)
 
             # Basic request info
-            logger.debug(f">>> {method.upper()} {url}")
-            logger.debug(f"<<< Status: {resp.status_code}")
-            logger.debug(f"<<< Headers: {resp.headers}")
+            logger.debug(">>> %s %s", method.upper(), url)
+            logger.debug("<<< Status: %s", resp.status_code)
+            logger.debug("<<< Headers: %s", resp.headers)
 
             # Log raw bytes length
             try:
-                logger.debug(f"<<< Raw bytes length: {len(resp.content)}")
+                logger.debug("<<< Raw bytes length: %s", len(resp.content))
             except Exception as e:
-                logger.debug(f"<<< Could not read raw bytes: {e}")
+                logger.debug("<<< Could not read raw bytes: %s", e)
 
             # Log pretty JSON (if any)
             try:
@@ -367,13 +367,13 @@ class FTSession:
                 # This automatically uses requests decompression if gzip is set
                 json_body = resp.json()
                 pretty = pyjson.dumps(json_body, indent=2)
-                logger.debug(f"<<< JSON body:\n{pretty}")
-            except Exception as e:
+                logger.debug("<<< JSON body:\n%s", pretty)
+            except Exception:
                 # If JSON decoding fails, fallback to raw text
                 try:
-                    logger.debug(f"<<< Body (text):\n{resp.text}")
+                    logger.debug("<<< Body (text):\n%s", resp.text)
                 except Exception as e2:
-                    logger.debug(f"<<< Could not read body text: {e2}")
+                    logger.debug("<<< Could not read body text: %s", e2)
 
         return resp
 
