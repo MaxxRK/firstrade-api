@@ -160,6 +160,23 @@ option_order = ft_order.place_option_order(
 )
 print(f"Preview of an option order for {option_quote['items'][0]['opt_symbol']}: {json.dumps(option_order, indent=2)}")
 
+# Place a dry run two-leg spread. A debit spread buys the first leg and sells the second;
+# net_price is always the positive net amount. Spreads are day orders accepted only during
+# market hours (error 1110 otherwise).
+calls = [item for item in option_quote["items"] if item["class"] == "C"]
+spread_order = ft_order.place_spread_order(
+    account=ft_accounts.account_numbers[0],
+    leg1_symbol=calls[0]["opt_symbol"],
+    leg1_transaction=order.OrderType.BUY_OPTION,
+    leg2_symbol=calls[1]["opt_symbol"],
+    leg2_transaction=order.OrderType.SELL_OPTION,
+    limit_type=order.SpreadLimitType.DEBIT,
+    net_price=0.01,
+    contracts=1,
+    dry_run=True,
+)
+print(f"Preview of a spread order: {json.dumps(spread_order, indent=2)}")
+
 
 wl = watchlist.Watchlist(ft_ss)
 data = wl.get_watchlists()

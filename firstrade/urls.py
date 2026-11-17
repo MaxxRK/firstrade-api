@@ -90,6 +90,16 @@ def option_order() -> str:
     return "https://api3x.firstrade.com/private/option_order"
 
 
+def complex_option_order() -> str:
+    """Place multi-leg (spread) option order URL for FirstTrade API.
+
+    Returns:
+        str: The URL.
+
+    """
+    return "https://api3x.firstrade.com/private/complex_option_order"
+
+
 def watchlists() -> str:
     """Watchlist collection URL for FirstTrade API (list all / create)."""
     return "https://api3x.firstrade.com/private/watchlists"

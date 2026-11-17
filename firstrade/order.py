@@ -50,8 +50,10 @@ class OrderType(enum.StrEnum):
         SELL (str): Sell order.
         SELL_SHORT (str): Sell short order.
         BUY_TO_COVER (str): Buy to cover order.
-        BUY_OPTION (str): Buy option order.
-        SELL_OPTION (str): Sell option order.
+        BUY_OPTION (str): Buy option order (opens a long position).
+        SELL_OPTION (str): Sell option order (opens a short position).
+        BUY_TO_CLOSE_OPTION (str): Buy an option to close a short position.
+        SELL_TO_CLOSE_OPTION (str): Sell an option to close a long position.
 
     """
 
@@ -61,6 +63,8 @@ class OrderType(enum.StrEnum):
     BUY_TO_COVER = "BC"
     BUY_OPTION = "BO"
     SELL_OPTION = "SO"
+    BUY_TO_CLOSE_OPTION = "BC"
+    SELL_TO_CLOSE_OPTION = "SC"
 
 
 class OrderInstructions(enum.StrEnum):
@@ -91,6 +95,19 @@ class OptionType(enum.StrEnum):
 
     CALL = "C"
     PUT = "P"
+
+
+class SpreadLimitType(enum.StrEnum):
+    """Enum for whether a spread order pays or receives its net price.
+
+    Attributes:
+        DEBIT (str): The order pays the net price.
+        CREDIT (str): The order receives the net price.
+
+    """
+
+    DEBIT = "D"
+    CREDIT = "C"
 
 
 class Order:
@@ -237,4 +254,62 @@ class Order:
             return response.json()
         data["preview"] = "false"
         response = self.ft_session._request("post", url=urls.option_order(), data=data)
+        return response.json()
+
+    def place_spread_order(
+        self,
+        account: str,
+        leg1_symbol: str,
+        leg1_transaction: OrderType,
+        leg2_symbol: str,
+        leg2_transaction: OrderType,
+        limit_type: SpreadLimitType,
+        net_price: float,
+        contracts: int = 1,
+        *,
+        dry_run: bool = True,
+    ) -> dict:
+        """Build and place a two-leg option spread order.
+
+        Spread orders are limit orders priced as one net amount. They are day orders:
+        the endpoint rejects ``duration`` and ``limit_price``. Firstrade only accepts them
+        during market hours and answers error code 1110 otherwise.
+
+        Args:
+            account (str): The account number to place the order in.
+            leg1_symbol (str): The option ticker symbol for the first leg.
+            leg1_transaction (OrderType): BUY_OPTION, SELL_OPTION, BUY_TO_CLOSE_OPTION or SELL_TO_CLOSE_OPTION.
+            leg2_symbol (str): The option ticker symbol for the second leg.
+            leg2_transaction (OrderType): The transaction for the second leg.
+            limit_type (SpreadLimitType): DEBIT if the order pays the net price, CREDIT if it receives it.
+            net_price (float): The net price of the whole spread, always positive.
+            contracts (int, optional): The number of spreads. Both legs use it. Defaults to 1.
+            dry_run (bool, optional): If True, the order is built and validated but not placed. Defaults to True.
+
+        Returns:
+            dict: A dictionary containing the order confirmation data, or the error.
+
+        """
+        data = {
+            "order_type": "spread",
+            "transaction1": leg1_transaction,
+            "symbol1": leg1_symbol,
+            "contracts1": contracts,
+            "transaction2": leg2_transaction,
+            "symbol2": leg2_symbol,
+            "contracts2": contracts,
+            "limit_type": limit_type,
+            "net_price": net_price,
+            "instructions": OrderInstructions.NONE,
+            "preview": "true",
+            "account": account,
+        }
+
+        response = self.ft_session._request("post", url=urls.complex_option_order(), data=data)
+        if response.status_code != 200 or response.json()["error"] != "":
+            return response.json()
+        if dry_run:
+            return response.json()
+        data["preview"] = "false"
+        response = self.ft_session._request("post", url=urls.complex_option_order(), data=data)
         return response.json()

@@ -36,6 +36,7 @@ The code in `test.py` will:
 - Get OHLC data
 - Get an option Dates, Quotes, and Greeks
 - Place a dry run option order
+- Place a dry run two-leg option spread order
 - List watchlists, create one, add a symbol to it then delete it
 ---
 
@@ -51,6 +52,7 @@ The code in `test.py` will:
 - [x] Check on placed order status. (thanks to @Cfomodz)
 - [x] Cancel placed orders
 - [x] Options (Orders, Quotes, Greeks)
+- [x] Two-leg option spread orders (`Order.place_spread_order`; preview verified, see below)
 - [x] Order History
 - [x] Manage watchlists
 
@@ -62,6 +64,12 @@ The code in `test.py` will:
 ## Options
 
 ### I am very new to options trading and have not fully tested this feature.
+
+Spread orders (`place_spread_order`) post to `private/complex_option_order`. Each leg takes a
+transaction code (`BO`/`SO` to open, `BC`/`SC` to close). `limit_type` is `D` when the order pays
+the net price and `C` when it receives it, and `net_price` is always positive. They are day
+orders: the endpoint rejects `duration` and `limit_price`, and answers error 1110 outside market
+hours. Only `preview=true` has been exercised against a live account so far.
 
 Please:
 - USE THIS FEATURE LIKE IT IS A ALPHA/BETA
