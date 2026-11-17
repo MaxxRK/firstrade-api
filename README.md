@@ -52,7 +52,7 @@ The code in `test.py` will:
 - [x] Check on placed order status. (thanks to @Cfomodz)
 - [x] Cancel placed orders
 - [x] Options (Orders, Quotes, Greeks)
-- [x] Two-leg option spread orders (`Order.place_spread_order`; preview verified, see below)
+- [x] Two-leg option spread orders (`Order.place_spread_order`; limit only, see [Options](#options) for what has and has not been verified)
 - [x] Order History
 - [x] Manage watchlists
 
@@ -65,17 +65,42 @@ The code in `test.py` will:
 
 ### I am very new to options trading and have not fully tested this feature.
 
-Spread orders (`place_spread_order`) post to `private/complex_option_order`. Each leg takes a
-transaction code (`BO`/`SO` to open, `BC`/`SC` to close). `limit_type` is `D` when the order pays
-the net price and `C` when it receives it, and `net_price` is always positive. They are day
-orders: the endpoint rejects `duration` and `limit_price`, and answers error 1110 outside market
-hours. Only `preview=true` has been exercised against a live account so far.
+#### Spread orders
 
-`place_option_order` and `place_spread_order` take `preview` (default `True`). With `preview=False`
-the real order is sent directly, without the `preview=true` request first, saving one round trip;
-any problem the preview would have caught comes back from the order itself. It cannot be combined
-with `dry_run=True`. Skipping the preview was checked live for single-leg option orders. For spreads
-it was only seen to be rejected identically with and without a preview, not accepted.
+`place_spread_order` posts to `private/complex_option_order`.
+
+- Each leg takes a transaction code: `BO`/`SO` to open, `BC`/`SC` to close.
+  `OrderType.BUY_TO_CLOSE_OPTION` and `SELL_TO_CLOSE_OPTION` are the close codes.
+- `limit_type` is `SpreadLimitType.DEBIT` when the order pays the net price and `CREDIT` when it receives it.
+  `net_price` is always positive and is required.
+- **Spreads are limit orders only.** The endpoint has no market order: leaving `net_price` out, sending `0`,
+  or adding a `price_type` is rejected, and `limit_type` only accepts `D` and `C`.
+- They are day orders. The endpoint rejects `duration` and `limit_price`, and answers error 1110 outside
+  market hours.
+- Firstrade may refuse a spread for an account with too little equity (error 1101). A contract that is not
+  on the option chain is refused with error 2044.
+
+#### Skipping the preview
+
+`place_option_order` and `place_spread_order` take `preview` (default `True`). With `preview=False` the real
+order is sent directly, without the `preview=true` request in front of it, which saves one round trip. Any
+problem the preview would have caught then comes back from the order itself. It cannot be combined with
+`dry_run=True`, because a dry run is a preview.
+
+#### What has been checked against a live account
+
+| | Verified | Not verified |
+| --- | --- | --- |
+| Single-leg order, `preview=False` | Accepted, listed, and cancelled | |
+| Spread request format | Accepted by the validator, which then checked equity (1101) and open positions (1100) | |
+| Spread, `preview=False` | Rejected with the same 1101 as with a preview in front of it | That a spread is accepted and placed |
+| Spread fills, order-list shape, positions | | Everything: the account used could not afford a spread |
+| Spread `BC`/`SC` close codes | Recognised by the validator | Closing an actual position |
+
+The spread details come from the endpoint's own validator messages and from the write-up in
+[PatrickSUDO/firstrade-mcp-server](https://github.com/PatrickSUDO/firstrade-mcp-server)
+(`docs/option-order-api.md`), not from Firstrade. If you place a spread that is accepted, an issue with what
+the order list and positions look like afterwards would help.
 
 Please:
 - USE THIS FEATURE LIKE IT IS A ALPHA/BETA
