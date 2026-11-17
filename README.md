@@ -71,6 +71,12 @@ the net price and `C` when it receives it, and `net_price` is always positive. T
 orders: the endpoint rejects `duration` and `limit_price`, and answers error 1110 outside market
 hours. Only `preview=true` has been exercised against a live account so far.
 
+`place_option_order` and `place_spread_order` take `preview` (default `True`). With `preview=False`
+the real order is sent directly, without the `preview=true` request first, saving one round trip;
+any problem the preview would have caught comes back from the order itself. It cannot be combined
+with `dry_run=True`. Skipping the preview was checked live for single-leg option orders. For spreads
+it was only seen to be rejected identically with and without a preview, not accepted.
+
 Please:
 - USE THIS FEATURE LIKE IT IS A ALPHA/BETA
 - PUT IN A GITHUB ISSUE IF YOU FIND ANY PROBLEMS

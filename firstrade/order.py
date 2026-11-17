@@ -204,6 +204,7 @@ class Order:
         price: float = 0.00,
         *,
         dry_run: bool = True,
+        preview: bool = True,
         order_instruction: OrderInstructions = OrderInstructions.NONE,
     ):
         """Build and place an option order.
@@ -219,9 +220,11 @@ class Order:
             price (float, optional): The price at which to buy or sell the option contracts. Defaults to 0.00.
             dry_run (bool, optional): If True, the order will not be placed but will be built and validated. Defaults to True.
             order_instruction (OrderInstructions, optional): Additional order instructions (e.g., AON, OPG). Defaults to "0".
+            preview (bool, optional): If True, a preview request is sent first and the order is only placed when the preview is clean. If False, the real order is sent directly, saving one round trip, and any problem the preview would have caught comes back from the order itself. Cannot be combined with dry_run, because a dry run is a preview. Defaults to True.
 
         Raises:
             ValueError: If AON orders are not limit orders or if AON orders have a quantity of 100 contracts or less.
+                Also if preview is False while dry_run is True.
 
         Returns:
             dict: A dictionary containing the order confirmation data.
@@ -231,6 +234,8 @@ class Order:
             raise ValueError("AON orders must be a limit order.")
         if order_instruction == OrderInstructions.AON and contracts <= 100:
             raise ValueError("AON orders must be greater than 100 shares.")
+        if dry_run and not preview:
+            raise ValueError("A dry run is a preview: preview=False cannot be combined with dry_run=True.")
 
         data = {
             "duration": duration,
@@ -246,6 +251,11 @@ class Order:
             data["limit_price"] = price
         if price_type in {PriceType.STOP, PriceType.STOP_LIMIT}:
             data["stop_price"] = stop_price
+
+        if not preview:
+            data["preview"] = "false"
+            response = self.ft_session._request("post", url=urls.option_order(), data=data)
+            return response.json()
 
         response = self.ft_session._request("post", url=urls.option_order(), data=data)
         if response.status_code != 200 or response.json()["error"] != "":
@@ -268,6 +278,7 @@ class Order:
         contracts: int = 1,
         *,
         dry_run: bool = True,
+        preview: bool = True,
     ) -> dict:
         """Build and place a two-leg option spread order.
 
@@ -285,11 +296,18 @@ class Order:
             net_price (float): The net price of the whole spread, always positive.
             contracts (int, optional): The number of spreads. Both legs use it. Defaults to 1.
             dry_run (bool, optional): If True, the order is built and validated but not placed. Defaults to True.
+            preview (bool, optional): If True, a preview request is sent first and the order is only placed when the preview is clean. If False, the real order is sent directly. Cannot be combined with dry_run. Skipping the preview was checked live for single-leg orders; for spreads it was only seen to be rejected the same way with and without a preview (insufficient equity), not accepted. Defaults to True.
 
         Returns:
             dict: A dictionary containing the order confirmation data, or the error.
 
+        Raises:
+            ValueError: If preview is False while dry_run is True.
+
         """
+        if dry_run and not preview:
+            raise ValueError("A dry run is a preview: preview=False cannot be combined with dry_run=True.")
+
         data = {
             "order_type": "spread",
             "transaction1": leg1_transaction,
@@ -304,6 +322,11 @@ class Order:
             "preview": "true",
             "account": account,
         }
+
+        if not preview:
+            data["preview"] = "false"
+            response = self.ft_session._request("post", url=urls.complex_option_order(), data=data)
+            return response.json()
 
         response = self.ft_session._request("post", url=urls.complex_option_order(), data=data)
         if response.status_code != 200 or response.json()["error"] != "":
