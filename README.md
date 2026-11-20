@@ -118,6 +118,8 @@ comes back as `28.999999999999996`), `maxProfit` is the string `"Infinite"` for 
 `FTAccountData.get_order_detail(order_id)` returns one order in the shape the order list uses, so a spread is still
 one leg per answer. `get_close_pairs` and `get_match_close_pairs` find the positions that can be closed together as
 one strategy. They were only asked of an account with no positions, so the shape of a match is not known.
+The strategy is a `CloseOutType` (`SP`, `ST`, `BF`, `CD`, `ICD`, `IBF`): the server lists exactly these and refuses
+the `MultiLegStrategy` values.
 
 #### Skipping the preview
 
@@ -155,10 +157,9 @@ python -m unittest discover -s tests
 | | Verified | Not verified |
 | --- | --- | --- |
 | Single-leg order, `preview=False` | Accepted, listed, and cancelled | |
-| Spread request format | Accepted by the validator, which then checked equity (1101) and open positions (1100) | |
-| Spread, `preview=False` | Rejected with the same 1101 as with a preview in front of it | That a spread is accepted and placed |
-| Spread fills, order-list shape, positions | | Everything: the account used could not afford a spread |
-| Spread `BC`/`SC` close codes | Recognised by the validator | Closing an actual position |
+| Spread, `preview=False` | The same request body, sent without a preview, was accepted and filled on a live account: a call debit spread bought and sold back, a put credit spread sold and bought back (TLT, one-dollar wide). It was sent by a client that built the body itself, before this method existed in the installed version, so the method as such was not the one sending | Partial fills |
+| Spread order list and positions | A spread is listed as two rows, one per leg, linked by `other_leg_order_id` and `all_other_leg_ids`, with `mleg` set to `CO`; each row carries its own leg's `avg_exe_price`, so the net fill price is the near leg's less the far leg's. The positions are listed per leg | |
+| Spread `BC`/`SC` close codes | Used to close both spreads above: they filled | |
 | `place_complex_order` | Previews accepted for a straddle, a butterfly (calls and puts, 1:2:1 and 2:4:2, bought and sold), a condor, an iron condor and an iron butterfly | Submitting any of them, closing any of them, and the rules of the condor and the iron strategies |
 | `get_option_order_analysis`, `get_complex_option_order_analysis` | Answered for a spread, a butterfly and a single call, and the numbers read back | A condor and the iron strategies; the shape of `breakevenPrice` where a strategy has two |
 | `get_order_detail` | Answered for a filled order | An order that is still working, a partly filled one |

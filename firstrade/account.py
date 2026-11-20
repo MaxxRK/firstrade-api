@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pyotp
 import requests
@@ -12,6 +13,9 @@ from firstrade.exceptions import (
     LoginRequestError,
     LoginResponseError,
 )
+
+if TYPE_CHECKING:
+    from firstrade.order import CloseOutType
 
 logger = logging.getLogger(__name__)
 
@@ -503,18 +507,18 @@ class FTAccountData:
     def get_close_pairs(
         self,
         account: str,
-        strategy: str,
+        strategy: "CloseOutType",
         option_symbol: str | None = None,
         underlying_symbol: str | None = None,
     ) -> dict[str, object]:
         """Find the positions that can be closed together with a given one, as one strategy.
 
-        The server needs the strategy (``SP`` spread, ``ST`` straddle, ``BF`` butterfly, ``CD`` condor,
-        ``ICD`` iron condor, ``IBF`` iron butterfly) and one of an option symbol or an underlying symbol.
+        The server needs the strategy, as a ``CloseOutType`` (its codes are not those of
+        ``MultiLegStrategy``), and one of an option symbol or an underlying symbol.
 
         Args:
             account (str): The account number.
-            strategy (str): The strategy code.
+            strategy (CloseOutType): The strategy, e.g. ``CloseOutType.SPREAD``.
             option_symbol (str, optional): The option the pair is looked for around.
             underlying_symbol (str, optional): The underlying to look at, instead of one option.
 

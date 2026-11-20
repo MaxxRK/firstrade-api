@@ -56,6 +56,11 @@ class OrderType(enum.StrEnum):
         BUY_TO_CLOSE_OPTION (str): Buy an option to close a short position.
         SELL_TO_CLOSE_OPTION (str): Sell an option to close a long position.
 
+    ``BUY_TO_CLOSE_OPTION`` and ``BUY_TO_COVER`` are both ``"BC"``: Firstrade uses one code for
+    both and tells them apart by the security. So ``BUY_TO_CLOSE_OPTION`` is an alias of
+    ``BUY_TO_COVER``: ``OrderType("BC")`` is ``BUY_TO_COVER`` and iterating ``OrderType`` shows
+    only that name. The value sent is the same either way.
+
     """
 
     BUY = "B"
@@ -134,6 +139,30 @@ class MultiLegStrategy(enum.StrEnum):
     CONDOR = "condor"
     IRON_CONDOR = "ironcondor"
     IRON_BUTTERFLY = "ironbutterfly"
+
+
+class CloseOutType(enum.StrEnum):
+    """The strategy codes the close-pair lookup takes, as the server lists them.
+
+    These are not the values of ``MultiLegStrategy``: the server answers anything else with
+    ``"co_type" must be one of [SP, ST, BF, ICD, CD, IBF]``.
+
+    Attributes:
+        SPREAD (str): A spread.
+        STRADDLE (str): A straddle.
+        BUTTERFLY (str): A butterfly.
+        CONDOR (str): A condor.
+        IRON_CONDOR (str): An iron condor.
+        IRON_BUTTERFLY (str): An iron butterfly.
+
+    """
+
+    SPREAD = "SP"
+    STRADDLE = "ST"
+    BUTTERFLY = "BF"
+    CONDOR = "CD"
+    IRON_CONDOR = "ICD"
+    IRON_BUTTERFLY = "IBF"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -262,7 +291,10 @@ class Order:
             price (float, optional): The price at which to buy or sell the option contracts. Defaults to 0.00.
             dry_run (bool, optional): If True, the order will not be placed but will be built and validated. Defaults to True.
             order_instruction (OrderInstructions, optional): Additional order instructions (e.g., AON, OPG). Defaults to "0".
-            preview (bool, optional): If True, a preview request is sent first and the order is only placed when the preview is clean. If False, the real order is sent directly, saving one round trip, and any problem the preview would have caught comes back from the order itself. Cannot be combined with dry_run, because a dry run is a preview. Defaults to True.
+            preview (bool, optional): If True, a preview request is sent first and the order is only
+                placed when the preview is clean. If False, the real order is sent directly, saving one
+                round trip, and any problem the preview would have caught comes back from the order
+                itself. Cannot be combined with dry_run, because a dry run is a preview. Defaults to True.
 
         Raises:
             ValueError: If AON orders are not limit orders or if AON orders have a quantity of 100 contracts or less.
@@ -338,13 +370,13 @@ class Order:
             net_price (float): The net price of the whole spread, always positive.
             contracts (int, optional): The number of spreads. Both legs use it. Defaults to 1.
             dry_run (bool, optional): If True, the order is built and validated but not placed. Defaults to True.
-            preview (bool, optional): If True, a preview request is sent first and the order is only placed when the preview is clean. If False, the real order is sent directly. Cannot be combined with dry_run. Skipping the preview was checked live for single-leg orders; for spreads it was only seen to be rejected the same way with and without a preview (insufficient equity), not accepted. Defaults to True.
+            preview (bool, optional): If True, a preview request is sent first and the order is only
+                placed when the preview is clean. If False, the real order is sent directly. Cannot be
+                combined with dry_run. A spread sent this way, without a preview, was accepted and filled
+                on a live account. Defaults to True.
 
         Returns:
             dict: A dictionary containing the order confirmation data, or the error.
-
-        Raises:
-            ValueError: If preview is False while dry_run is True.
 
         """
         return self.place_complex_order(
@@ -384,7 +416,9 @@ class Order:
             limit_type (SpreadLimitType): DEBIT if the order pays the net price, CREDIT if it receives it.
             net_price (float): The net price of the whole order, always positive.
             dry_run (bool, optional): If True, the order is built and validated but not placed. Defaults to True.
-            preview (bool, optional): If True, a preview request is sent first and the order is only placed when the preview is clean. If False, the real order is sent directly. Cannot be combined with dry_run. Defaults to True.
+            preview (bool, optional): If True, a preview request is sent first and the order is only
+                placed when the preview is clean. If False, the real order is sent directly. Cannot be
+                combined with dry_run. Defaults to True.
 
         Returns:
             dict: A dictionary containing the order confirmation data, or the error.
@@ -540,8 +574,8 @@ class Order:
                 "limit_price": net_price,
                 "instructions": instructions,
             },
-            dry_run,
-            preview,
+            dry_run=dry_run,
+            preview=preview,
         )
 
     def modify_option_order(
@@ -587,8 +621,8 @@ class Order:
                 "duration": duration,
                 "instructions": instructions,
             },
-            dry_run,
-            preview,
+            dry_run=dry_run,
+            preview=preview,
         )
 
     def modify_stock_order(
@@ -644,9 +678,9 @@ class Order:
         }
         if price_type == PriceType.LIMIT:
             data["limit_price"] = price
-        return self._modify(urls.order_edit(), data, dry_run, preview)
+        return self._modify(urls.order_edit(), data, dry_run=dry_run, preview=preview)
 
-    def _modify(self, url: str, data: dict[str, object], dry_run: bool, preview: bool) -> dict:  # noqa: FBT001
+    def _modify(self, url: str, data: dict[str, object], *, dry_run: bool, preview: bool) -> dict:
         """Send a cancel/replace request, previewing first unless told not to.
 
         Args:

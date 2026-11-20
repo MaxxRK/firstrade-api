@@ -331,7 +331,7 @@ class OrderReadTests(unittest.TestCase):
 
     def test_close_pairs_needs_a_strategy_and_a_symbol(self) -> None:
         data, session = _accounts()
-        data.get_close_pairs("81234567", "SP", option_symbol="TLT261127C00081000")
+        data.get_close_pairs("81234567", order.CloseOutType.SPREAD, option_symbol="TLT261127C00081000")
         [(method, url, body)] = session.requests
         self.assertEqual((method, url), ("post", urls.close_pairs()))
         self.assertEqual(
@@ -340,15 +340,27 @@ class OrderReadTests(unittest.TestCase):
 
     def test_close_pairs_can_look_by_underlying(self) -> None:
         data, session = _accounts()
-        data.get_close_pairs("81234567", "ST", underlying_symbol="TLT")
+        data.get_close_pairs("81234567", order.CloseOutType.STRADDLE, underlying_symbol="TLT")
         body = session.requests[0][2]
         self.assertEqual(body, {"account": "81234567", "co_type": "ST", "underlying_symbol": "TLT"})
 
     def test_close_pairs_without_any_symbol_is_refused_before_sending(self) -> None:
         data, session = _accounts()
         with self.assertRaises(ValueError):
-            data.get_close_pairs("81234567", "SP")
+            data.get_close_pairs("81234567", order.CloseOutType.SPREAD)
         self.assertEqual(session.requests, [])
+
+    def test_the_close_out_codes_are_the_ones_the_server_lists(self) -> None:
+        # '"co_type" must be one of [SP, ST, BF, ICD, CD, IBF]', and not the multi-leg values
+        self.assertEqual(
+            sorted(member.value for member in order.CloseOutType),
+            sorted(["SP", "ST", "BF", "ICD", "CD", "IBF"]),
+        )
+        self.assertFalse({m.value for m in order.CloseOutType} & {m.value for m in order.MultiLegStrategy})
+
+    def test_buy_to_close_and_buy_to_cover_send_the_same_code(self) -> None:
+        self.assertEqual(order.OrderType.BUY_TO_CLOSE_OPTION.value, "BC")
+        self.assertIs(order.OrderType.BUY_TO_CLOSE_OPTION, order.OrderType.BUY_TO_COVER)
 
     def test_match_close_pairs_sends_only_the_account(self) -> None:
         data, session = _accounts()
