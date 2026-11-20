@@ -336,3 +336,121 @@ class Order:
         data["preview"] = "false"
         response = self.ft_session._request("post", url=urls.complex_option_order(), data=data)
         return response.json()
+
+    def modify_spread_order(
+        self,
+        order_id: str,
+        net_price: float,
+        contracts: int,
+        *,
+        dry_run: bool = True,
+        preview: bool = True,
+        instructions: OrderInstructions = OrderInstructions.NONE,
+    ) -> dict:
+        """Change the net price or size of a working spread order.
+
+        Firstrade replaces the order: the old one is cancelled and a new one with the new terms
+        is entered in one request, so the new order has a new id and the old one is left as
+        ``ORDER-UPDATED``. Look the new id up in the order list.
+
+        Args:
+            order_id (str): The id of a working spread order (either leg's id, from the order list).
+            net_price (float): The new net price of the whole spread, positive.
+            contracts (int): The new number of spreads.
+            dry_run (bool, optional): If True, only the preview request is sent. Defaults to True.
+            preview (bool, optional): If True, a preview request is sent first and the change is only
+                made when the preview is clean. If False, the change is sent directly. Cannot be
+                combined with dry_run. Defaults to True.
+            instructions (OrderInstructions, optional): Order instructions. Defaults to NONE.
+
+        Returns:
+            dict: The preview (net price, both legs' quotes, estimated total) or, for a real change,
+                ``{"result": {"state": "ORDER-PROCESSING"}}``.
+
+        """
+        return self._modify(urls.complex_option_order_edit(), order_id, net_price, contracts, dry_run, preview, instructions)
+
+    def modify_option_order(
+        self,
+        order_id: str,
+        price: float,
+        contracts: int,
+        price_type: PriceType = PriceType.LIMIT,
+        duration: Duration = Duration.DAY,
+        *,
+        dry_run: bool = True,
+        preview: bool = True,
+        instructions: OrderInstructions = OrderInstructions.NONE,
+    ) -> dict:
+        """Change the price or size of a working single-leg option order.
+
+        The request mirrors the one the Firstrade mobile app builds for a single-leg edit. Unlike
+        ``modify_spread_order`` it has not been tried against a live order, so treat it as untested.
+
+        Args:
+            order_id (str): The id of a working option order, from the order list.
+            price (float): The new limit price.
+            contracts (int): The new number of contracts.
+            price_type (PriceType, optional): The price type. Defaults to LIMIT.
+            duration (Duration, optional): The duration. Defaults to DAY.
+            dry_run (bool, optional): If True, only the preview request is sent. Defaults to True.
+            preview (bool, optional): If True, a preview request is sent first. If False, the change
+                is sent directly. Cannot be combined with dry_run. Defaults to True.
+            instructions (OrderInstructions, optional): Order instructions. Defaults to NONE.
+
+        Returns:
+            dict: The preview or the result of the change.
+
+        """
+        return self._modify(
+            urls.option_order_edit(), order_id, price, contracts, dry_run, preview, instructions,
+            extra={"price_type": price_type, "duration": duration},
+        )
+
+    def _modify(
+        self,
+        url: str,
+        order_id: str,
+        price: float,
+        contracts: int,
+        dry_run: bool,
+        preview: bool,
+        instructions: OrderInstructions,
+        extra: dict | None = None,
+    ) -> dict:
+        """Send a cancel/replace request, previewing first unless told not to.
+
+        Args:
+            url (str): The cancel/replace endpoint.
+            order_id (str): The id of the working order.
+            price (float): The new price.
+            contracts (int): The new number of contracts.
+            dry_run (bool): If True, only the preview request is sent.
+            preview (bool): If True, a preview request is sent first.
+            instructions (OrderInstructions): Order instructions.
+            extra (dict | None): Further fields the endpoint takes.
+
+        Returns:
+            dict: The preview or the result of the change.
+
+        Raises:
+            ValueError: If preview is False while dry_run is True.
+
+        """
+        if dry_run and not preview:
+            raise ValueError("A dry run is a preview: preview=False cannot be combined with dry_run=True.")
+        data = {
+            "order_id": order_id,
+            "contracts": contracts,
+            "limit_price": price,
+            "instructions": instructions,
+            **(extra or {}),
+        }
+        if preview:
+            response = self.ft_session._request("post", url=url, data={**data, "preview": "true"})
+            if response.status_code != 200 or response.json()["error"] != "":
+                return response.json()
+            if dry_run:
+                return response.json()
+        response = self.ft_session._request("post", url=url, data={**data, "preview": "false"})
+        return response.json()

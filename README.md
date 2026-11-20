@@ -53,6 +53,7 @@ The code in `test.py` will:
 - [x] Cancel placed orders
 - [x] Options (Orders, Quotes, Greeks)
 - [x] Two-leg option spread orders (`Order.place_spread_order`; limit only, see [Options](#options) for what has and has not been verified)
+- [x] Change the price or size of a working option order (`Order.modify_spread_order`, `Order.modify_option_order`)
 - [x] Order History
 - [x] Manage watchlists
 
@@ -87,6 +88,15 @@ order is sent directly, without the `preview=true` request in front of it, which
 problem the preview would have caught then comes back from the order itself. It cannot be combined with
 `dry_run=True`, because a dry run is a preview.
 
+#### Changing a working order
+
+`modify_spread_order(order_id, net_price, contracts)` and `modify_option_order(order_id, price, contracts)` post
+to `private/cxlrpl_complexoption_order` and `private/cxlrpl_option_order`, the endpoints the Firstrade mobile app
+calls for an edit. Firstrade replaces the order: the old one is cancelled and a new one entered in a single
+request, so the new order has a new id and the old one is listed as `ORDER-UPDATED`. Take the new id from the
+order list. `order_id` is the id shown in the order list (either leg's, for a spread), not the internal
+`clordid` the website uses. The account is not sent. `preview` and `dry_run` work as for placing an order.
+
 #### What has been checked against a live account
 
 | | Verified | Not verified |
@@ -96,6 +106,8 @@ problem the preview would have caught then comes back from the order itself. It 
 | Spread, `preview=False` | Rejected with the same 1101 as with a preview in front of it | That a spread is accepted and placed |
 | Spread fills, order-list shape, positions | | Everything: the account used could not afford a spread |
 | Spread `BC`/`SC` close codes | Recognised by the validator | Closing an actual position |
+| `modify_spread_order` | Previewed and submitted on a working spread: price changed, old order `ORDER-UPDATED`, new order working | Partial fills; what happens to a spread already partly filled |
+| `modify_option_order` | | Everything: the request was built from the app's code but never sent |
 
 The spread details come from the endpoint's own validator messages and from the write-up in
 [PatrickSUDO/firstrade-mcp-server](https://github.com/PatrickSUDO/firstrade-mcp-server)
