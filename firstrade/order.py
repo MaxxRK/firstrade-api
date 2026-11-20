@@ -1,3 +1,4 @@
+import dataclasses
 import enum
 
 from firstrade import urls
@@ -108,6 +109,47 @@ class SpreadLimitType(enum.StrEnum):
 
     DEBIT = "D"
     CREDIT = "C"
+
+
+class MultiLegStrategy(enum.StrEnum):
+    """The strategies the multi-leg order endpoint takes, by the value it expects.
+
+    The values are the ones the server accepted when they were sent to it as previews; any other
+    (``strangle``, ``vertical``, ``calendar``, the short codes ``SP``/``ST``/``BF``/``CD``/``ICD``/``IBF``)
+    is answered with ``Invalid order type.``
+
+    Attributes:
+        SPREAD (str): Two legs, calls or puts.
+        STRADDLE (str): A call and a put at one strike and one expiration, bought to open or sold to close.
+        BUTTERFLY (str): Three legs at equal strike steps, the middle one twice the size of each wing.
+        CONDOR (str): Four legs.
+        IRON_CONDOR (str): Four legs: a put spread and a call spread.
+        IRON_BUTTERFLY (str): Four legs sharing a middle strike.
+
+    """
+
+    SPREAD = "spread"
+    STRADDLE = "straddle"
+    BUTTERFLY = "butterfly"
+    CONDOR = "condor"
+    IRON_CONDOR = "ironcondor"
+    IRON_BUTTERFLY = "ironbutterfly"
+
+
+@dataclasses.dataclass(frozen=True)
+class Leg:
+    """One leg of a multi-leg option order.
+
+    Attributes:
+        symbol (str): The option ticker symbol.
+        transaction (OrderType): BUY_OPTION, SELL_OPTION, BUY_TO_CLOSE_OPTION or SELL_TO_CLOSE_OPTION.
+        contracts (int): The number of contracts of this leg. Defaults to 1.
+
+    """
+
+    symbol: str
+    transaction: OrderType
+    contracts: int = 1
 
 
 class Order:
@@ -305,23 +347,71 @@ class Order:
             ValueError: If preview is False while dry_run is True.
 
         """
+        return self.place_complex_order(
+            account,
+            MultiLegStrategy.SPREAD,
+            [Leg(leg1_symbol, leg1_transaction, contracts), Leg(leg2_symbol, leg2_transaction, contracts)],
+            limit_type,
+            net_price,
+            dry_run=dry_run,
+            preview=preview,
+        )
+
+    def place_complex_order(
+        self,
+        account: str,
+        strategy: MultiLegStrategy,
+        legs: list[Leg],
+        limit_type: SpreadLimitType,
+        net_price: float,
+        *,
+        dry_run: bool = True,
+        preview: bool = True,
+    ) -> dict:
+        """Build and place a multi-leg option order: a spread, straddle, butterfly, condor or iron one.
+
+        The order is one limit order priced as a single net amount, a day order. The library checks
+        only what it needs to build the request (two to four legs). Everything about the strategy
+        itself is the server's to judge, and its answer comes back untouched, with its reference code:
+        that a straddle takes one call and one put at one strike, bought to open or sold to close;
+        that a butterfly has three legs at equal strike steps with the middle one twice the size of
+        a wing; that the legs of a condor or iron strategy have to fit together.
+
+        Args:
+            account (str): The account number to place the order in.
+            strategy (MultiLegStrategy): The strategy, by the value the server expects.
+            legs (list[Leg]): Two to four legs, in the order the strategy is described.
+            limit_type (SpreadLimitType): DEBIT if the order pays the net price, CREDIT if it receives it.
+            net_price (float): The net price of the whole order, always positive.
+            dry_run (bool, optional): If True, the order is built and validated but not placed. Defaults to True.
+            preview (bool, optional): If True, a preview request is sent first and the order is only placed when the preview is clean. If False, the real order is sent directly. Cannot be combined with dry_run. Defaults to True.
+
+        Returns:
+            dict: A dictionary containing the order confirmation data, or the error.
+
+        Raises:
+            ValueError: If preview is False while dry_run is True, or there are not two to four legs.
+
+        """
         if dry_run and not preview:
             raise ValueError("A dry run is a preview: preview=False cannot be combined with dry_run=True.")
+        if not 2 <= len(legs) <= 4:
+            raise ValueError("A multi-leg order has two to four legs.")
 
-        data = {
-            "order_type": "spread",
-            "transaction1": leg1_transaction,
-            "symbol1": leg1_symbol,
-            "contracts1": contracts,
-            "transaction2": leg2_transaction,
-            "symbol2": leg2_symbol,
-            "contracts2": contracts,
-            "limit_type": limit_type,
-            "net_price": net_price,
-            "instructions": OrderInstructions.NONE,
-            "preview": "true",
-            "account": account,
-        }
+        data: dict[str, object] = {"order_type": strategy}
+        for index, leg in enumerate(legs, start=1):
+            data[f"transaction{index}"] = leg.transaction
+            data[f"symbol{index}"] = leg.symbol
+            data[f"contracts{index}"] = leg.contracts
+        data.update(
+            {
+                "limit_type": limit_type,
+                "net_price": net_price,
+                "instructions": OrderInstructions.NONE,
+                "preview": "true",
+                "account": account,
+            }
+        )
 
         if not preview:
             data["preview"] = "false"

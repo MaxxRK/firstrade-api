@@ -52,7 +52,7 @@ The code in `test.py` will:
 - [x] Check on placed order status. (thanks to @Cfomodz)
 - [x] Cancel placed orders
 - [x] Options (Orders, Quotes, Greeks)
-- [x] Two-leg option spread orders (`Order.place_spread_order`; limit only, see [Options](#options) for what has and has not been verified)
+- [x] Multi-leg option orders: spread, straddle, butterfly, condor, iron condor, iron butterfly (`Order.place_complex_order`, and `Order.place_spread_order` for two legs; limit only, see [Options](#options) for what has and has not been verified)
 - [x] Change the price or size of a working order (`Order.modify_stock_order`, `Order.modify_option_order`, `Order.modify_spread_order`)
 - [x] Order History
 - [x] Manage watchlists
@@ -81,6 +81,28 @@ The code in `test.py` will:
 - Firstrade may refuse a spread for an account with too little equity (error 1101). A contract that is not
   on the option chain is refused with error 2044.
 
+#### Other multi-leg strategies
+
+`place_complex_order(account, strategy, legs, limit_type, net_price)` sends the same endpoint up to four legs. The
+strategy is a `MultiLegStrategy` whose values are the ones the server accepts (`spread`, `straddle`, `butterfly`,
+`condor`, `ironcondor`, `ironbutterfly`; anything else, such as `strangle` or the short codes, is answered with
+`Invalid order type.`). Legs are `Leg(symbol, transaction, contracts)`, two to four of them.
+
+The library checks only the number of legs. What a strategy has to look like is the server's to judge, and its
+answer comes back untouched with its reference code. What the server said when previews were sent to it:
+
+| Strategy | Legs | Rules the server stated |
+| --- | --- | --- |
+| spread | 2 | calls or puts |
+| straddle | 2 | one call and one put at the same strike and expiration; buy to open or sell to close only |
+| butterfly | **3**, not 4 | equal strike steps between the legs; the middle leg twice the size of a wing (1:2:1, 2:4:2); bought or sold |
+| condor | 4 | |
+| ironcondor | 4 | a put spread and a call spread |
+| ironbutterfly | 4 | the two middle legs share a strike |
+
+These were checked as previews only. No multi-leg order other than a spread has been submitted, and no
+strategy has been closed, so treat the placing of a straddle, butterfly, condor or iron order as unverified.
+
 #### Skipping the preview
 
 `place_option_order` and `place_spread_order` take `preview` (default `True`). With `preview=False` the real
@@ -103,6 +125,15 @@ is not sent, and neither are the symbol and the transaction of a stock edit (the
 checked, so it raises `ValueError`. The field names come from the app's code and from the server's own validation
 messages (it names the field it wants: `shares`, not `quantity`, then `price_type`, then `duration`).
 
+#### Tests
+
+`tests/test_order.py` runs offline: the session is a stand-in that records each request, and the tests pin the
+body each order and edit method sends and the order of the preview and the real request.
+
+```
+python -m unittest discover -s tests
+```
+
 #### What has been checked against a live account
 
 | | Verified | Not verified |
@@ -112,6 +143,7 @@ messages (it names the field it wants: `shares`, not `quantity`, then `price_typ
 | Spread, `preview=False` | Rejected with the same 1101 as with a preview in front of it | That a spread is accepted and placed |
 | Spread fills, order-list shape, positions | | Everything: the account used could not afford a spread |
 | Spread `BC`/`SC` close codes | Recognised by the validator | Closing an actual position |
+| `place_complex_order` | Previews accepted for a straddle, a butterfly (calls and puts, 1:2:1 and 2:4:2, bought and sold), a condor, an iron condor and an iron butterfly | Submitting any of them, closing any of them, and the rules of the condor and the iron strategies |
 | `modify_spread_order` | Previewed and submitted on a working spread: price changed, old order `ORDER-UPDATED`, new order working | Partial fills; what happens to a spread already partly filled |
 | `modify_option_order` | Previewed and submitted on a working one-contract limit order: price changed, old order `ORDER-UPDATED`, new order working | Partial fills, stop orders |
 | `modify_stock_order` | Previewed and submitted on a working one-share limit order: price changed, old order `ORDER-UPDATED`, new order working | Market orders, partial fills, stop orders |
