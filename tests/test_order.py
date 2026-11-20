@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import unittest
 
-from firstrade import order, urls
+from firstrade import account, order, urls
 
 
 class _Response:
@@ -43,6 +43,14 @@ class _Session:
 def _client(reply: dict | None = None) -> tuple[order.Order, _Session]:
     session = _Session(reply)
     return order.Order(session), session  # type: ignore[arg-type]
+
+
+def _accounts(reply: dict | None = None) -> tuple[account.FTAccountData, _Session]:
+    """FTAccountData without logging in: only its session is used by the methods under test."""
+    session = _Session(reply)
+    data = account.FTAccountData.__new__(account.FTAccountData)
+    data.session = session  # type: ignore[assignment]
+    return data, session
 
 
 class SpreadOrderTests(unittest.TestCase):
@@ -227,6 +235,127 @@ class MultiLegOrderTests(unittest.TestCase):
             client.place_complex_order(
                 "81234567", order.MultiLegStrategy.STRADDLE, legs, order.SpreadLimitType.DEBIT, 0.5, preview=False
             )
+
+
+class AnalysisTests(unittest.TestCase):
+    """What an order would be before it is placed.  The server refuses account, preview, duration and
+    instructions on these two endpoints, so none of them is sent."""
+
+    def test_a_spread_analysis_sends_the_legs_and_no_bookkeeping(self) -> None:
+        client, session = _client()
+        legs = [
+            order.Leg("TLT261127C00081000", order.OrderType.BUY_OPTION),
+            order.Leg("TLT261127C00082000", order.OrderType.SELL_OPTION),
+        ]
+        client.get_complex_option_order_analysis(
+            order.MultiLegStrategy.SPREAD, legs, order.SpreadLimitType.DEBIT, 0.29
+        )
+        [(method, url, body)] = session.requests
+        self.assertEqual((method, url), ("post", urls.complex_option_order_analysis()))
+        self.assertEqual(
+            body,
+            {
+                "order_type": "spread",
+                "transaction1": "BO",
+                "symbol1": "TLT261127C00081000",
+                "contracts1": 1,
+                "transaction2": "SO",
+                "symbol2": "TLT261127C00082000",
+                "contracts2": 1,
+                "limit_type": "D",
+                "net_price": 0.29,
+            },
+        )
+        for refused in ("account", "preview", "instructions"):
+            self.assertNotIn(refused, body)
+
+    def test_a_butterfly_analysis_carries_its_doubled_middle(self) -> None:
+        client, session = _client()
+        legs = [
+            order.Leg("TLT261127C00081000", order.OrderType.BUY_OPTION),
+            order.Leg("TLT261127C00082000", order.OrderType.SELL_OPTION, 2),
+            order.Leg("TLT261127C00083000", order.OrderType.BUY_OPTION),
+        ]
+        client.get_complex_option_order_analysis(
+            order.MultiLegStrategy.BUTTERFLY, legs, order.SpreadLimitType.DEBIT, 0.05
+        )
+        body = session.requests[0][2]
+        self.assertEqual((body["order_type"], body["contracts2"]), ("butterfly", 2))
+
+    def test_the_analysis_refuses_a_bad_number_of_legs_before_sending(self) -> None:
+        client, session = _client()
+        with self.assertRaises(ValueError):
+            client.get_complex_option_order_analysis(
+                order.MultiLegStrategy.SPREAD,
+                [order.Leg("A", order.OrderType.BUY_OPTION)],
+                order.SpreadLimitType.DEBIT,
+                0.1,
+            )
+        self.assertEqual(session.requests, [])
+
+    def test_a_single_leg_analysis_sends_no_account_or_duration(self) -> None:
+        client, session = _client()
+        client.get_option_order_analysis("TLT261127C00081000", order.OrderType.BUY_OPTION, 1, 0.41)
+        [(method, url, body)] = session.requests
+        self.assertEqual((method, url), ("post", urls.option_order_analysis()))
+        self.assertEqual(
+            body,
+            {
+                "transaction": "BO",
+                "symbol": "TLT261127C00081000",
+                "contracts": 1,
+                "price_type": "2",
+                "limit_price": 0.41,
+            },
+        )
+        for refused in ("account", "preview", "duration", "instructions"):
+            self.assertNotIn(refused, body)
+
+    def test_the_answer_is_returned_as_it_came(self) -> None:
+        reply = {"error": "", "strategy": "Long Call (Bullish)", "maxProfit": "Infinite", "maxLoss": 41}
+        client, _ = _client(reply)
+        self.assertEqual(client.get_option_order_analysis("A", order.OrderType.BUY_OPTION, 1, 1.0), reply)
+
+
+class OrderReadTests(unittest.TestCase):
+    """Reading one order, and the positions that close together."""
+
+    def test_order_detail_is_a_get_with_only_the_order_id(self) -> None:
+        data, session = _accounts()
+        data.get_order_detail("Y1-1")
+        [(method, url, body)] = session.requests
+        self.assertEqual((method, url), ("get", urls.order_detail("Y1-1")))
+        self.assertTrue(url.endswith("/private/order_detail?order_id=Y1-1"))
+        self.assertNotIn("account", url)  # the server refuses it
+        self.assertEqual(body, {})
+
+    def test_close_pairs_needs_a_strategy_and_a_symbol(self) -> None:
+        data, session = _accounts()
+        data.get_close_pairs("81234567", "SP", option_symbol="TLT261127C00081000")
+        [(method, url, body)] = session.requests
+        self.assertEqual((method, url), ("post", urls.close_pairs()))
+        self.assertEqual(
+            body, {"account": "81234567", "co_type": "SP", "option_symbol": "TLT261127C00081000"}
+        )
+
+    def test_close_pairs_can_look_by_underlying(self) -> None:
+        data, session = _accounts()
+        data.get_close_pairs("81234567", "ST", underlying_symbol="TLT")
+        body = session.requests[0][2]
+        self.assertEqual(body, {"account": "81234567", "co_type": "ST", "underlying_symbol": "TLT"})
+
+    def test_close_pairs_without_any_symbol_is_refused_before_sending(self) -> None:
+        data, session = _accounts()
+        with self.assertRaises(ValueError):
+            data.get_close_pairs("81234567", "SP")
+        self.assertEqual(session.requests, [])
+
+    def test_match_close_pairs_sends_only_the_account(self) -> None:
+        data, session = _accounts()
+        data.get_match_close_pairs("81234567")
+        [(method, url, body)] = session.requests
+        self.assertEqual((method, url), ("post", urls.match_close_pairs()))
+        self.assertEqual(body, {"account": "81234567"})
 
 
 class SingleLegOrderTests(unittest.TestCase):

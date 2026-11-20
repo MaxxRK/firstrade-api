@@ -485,6 +485,69 @@ class FTAccountData:
         response = self.session._request("get", url=urls.order_list(account, per_page))
         return response.json()
 
+    def get_order_detail(self, order_id: str) -> dict[str, object]:
+        """Retrieve one order by its id, as the order list shows it (either leg's id for a spread).
+
+        The account is not sent: the server refuses it, and the id says which order.
+
+        Args:
+            order_id (str): The order id from the order list.
+
+        Returns:
+            dict: A dictionary containing the order's details, or the server's error.
+
+        """
+        response = self.session._request("get", url=urls.order_detail(order_id))
+        return response.json()
+
+    def get_close_pairs(
+        self,
+        account: str,
+        strategy: str,
+        option_symbol: str | None = None,
+        underlying_symbol: str | None = None,
+    ) -> dict[str, object]:
+        """Find the positions that can be closed together with a given one, as one strategy.
+
+        The server needs the strategy (``SP`` spread, ``ST`` straddle, ``BF`` butterfly, ``CD`` condor,
+        ``ICD`` iron condor, ``IBF`` iron butterfly) and one of an option symbol or an underlying symbol.
+
+        Args:
+            account (str): The account number.
+            strategy (str): The strategy code.
+            option_symbol (str, optional): The option the pair is looked for around.
+            underlying_symbol (str, optional): The underlying to look at, instead of one option.
+
+        Returns:
+            dict: A dictionary with the matching pairs under ``items`` (empty when there are none).
+
+        Raises:
+            ValueError: If neither an option symbol nor an underlying symbol is given.
+
+        """
+        if option_symbol is None and underlying_symbol is None:
+            raise ValueError("Give an option symbol or an underlying symbol.")
+        data = {"account": account, "co_type": strategy}
+        if option_symbol is not None:
+            data["option_symbol"] = option_symbol
+        if underlying_symbol is not None:
+            data["underlying_symbol"] = underlying_symbol
+        response = self.session._request("post", url=urls.close_pairs(), data=data)
+        return response.json()
+
+    def get_match_close_pairs(self, account: str) -> dict[str, object]:
+        """Find every group of positions in an account that can be closed together as one strategy.
+
+        Args:
+            account (str): The account number.
+
+        Returns:
+            dict: A dictionary with the matching groups under ``items`` (empty when there are none).
+
+        """
+        response = self.session._request("post", url=urls.match_close_pairs(), data={"account": account})
+        return response.json()
+
     def cancel_order(self, order_id: str) -> dict[str, object]:
         """Cancel an existing order.
 

@@ -53,6 +53,7 @@ The code in `test.py` will:
 - [x] Cancel placed orders
 - [x] Options (Orders, Quotes, Greeks)
 - [x] Multi-leg option orders: spread, straddle, butterfly, condor, iron condor, iron butterfly (`Order.place_complex_order`, and `Order.place_spread_order` for two legs; limit only, see [Options](#options) for what has and has not been verified)
+- [x] Read one order, find the positions that close together as a strategy, and ask what an order would be before placing it (`FTAccountData.get_order_detail`, `get_close_pairs`, `get_match_close_pairs`, `Order.get_option_order_analysis`, `Order.get_complex_option_order_analysis`)
 - [x] Change the price or size of a working order (`Order.modify_stock_order`, `Order.modify_option_order`, `Order.modify_spread_order`)
 - [x] Order History
 - [x] Manage watchlists
@@ -103,6 +104,21 @@ answer comes back untouched with its reference code. What the server said when p
 These were checked as previews only. No multi-leg order other than a spread has been submitted, and no
 strategy has been closed, so treat the placing of a straddle, butterfly, condor or iron order as unverified.
 
+#### What an order would be
+
+`get_option_order_analysis(option_symbol, order_type, contracts, price)` and
+`get_complex_option_order_analysis(strategy, legs, limit_type, net_price)` ask the server what an order would be
+before it is placed, as the mobile app's overview page does. They return the strategy's name (`Long Call
+Vertical Spread (Bullish)`, `Long Call Butterfly`), `estimatedTotal`, `breakevenPrice`, `maxProfit`, `maxLoss` and a
+`summary` in words. They place nothing, and the server refuses `account`, `preview` and `instructions` on them (and
+`duration` on the single-leg one), so none is sent. Mind the types: the numbers are floats (a 29 dollar spread
+comes back as `28.999999999999996`), `maxProfit` is the string `"Infinite"` for a long call, and `breakevenPrice` is
+`"-"` for a butterfly.
+
+`FTAccountData.get_order_detail(order_id)` returns one order in the shape the order list uses, so a spread is still
+one leg per answer. `get_close_pairs` and `get_match_close_pairs` find the positions that can be closed together as
+one strategy. They were only asked of an account with no positions, so the shape of a match is not known.
+
 #### Skipping the preview
 
 `place_option_order` and `place_spread_order` take `preview` (default `True`). With `preview=False` the real
@@ -144,6 +160,9 @@ python -m unittest discover -s tests
 | Spread fills, order-list shape, positions | | Everything: the account used could not afford a spread |
 | Spread `BC`/`SC` close codes | Recognised by the validator | Closing an actual position |
 | `place_complex_order` | Previews accepted for a straddle, a butterfly (calls and puts, 1:2:1 and 2:4:2, bought and sold), a condor, an iron condor and an iron butterfly | Submitting any of them, closing any of them, and the rules of the condor and the iron strategies |
+| `get_option_order_analysis`, `get_complex_option_order_analysis` | Answered for a spread, a butterfly and a single call, and the numbers read back | A condor and the iron strategies; the shape of `breakevenPrice` where a strategy has two |
+| `get_order_detail` | Answered for a filled order | An order that is still working, a partly filled one |
+| `get_close_pairs`, `get_match_close_pairs` | Accepted by the server, with the fields it asked for | Anything but an empty answer: no account position was held |
 | `modify_spread_order` | Previewed and submitted on a working spread: price changed, old order `ORDER-UPDATED`, new order working | Partial fills; what happens to a spread already partly filled |
 | `modify_option_order` | Previewed and submitted on a working one-contract limit order: price changed, old order `ORDER-UPDATED`, new order working | Partial fills, stop orders |
 | `modify_stock_order` | Previewed and submitted on a working one-share limit order: price changed, old order `ORDER-UPDATED`, new order working | Market orders, partial fills, stop orders |

@@ -427,6 +427,80 @@ class Order:
         response = self.ft_session._request("post", url=urls.complex_option_order(), data=data)
         return response.json()
 
+    def get_option_order_analysis(
+        self,
+        option_symbol: str,
+        order_type: OrderType,
+        contracts: int,
+        price: float,
+        price_type: PriceType = PriceType.LIMIT,
+    ) -> dict:
+        """Ask what a single-leg option order would be: its strategy, cost, break-even and worst case.
+
+        This is the overview the mobile app shows before an order is placed. It places nothing and
+        takes none of the order's own bookkeeping fields: no account, preview, duration or instructions
+        (the server refuses all four).
+
+        Args:
+            option_symbol (str): The option ticker symbol.
+            order_type (OrderType): BUY_OPTION, SELL_OPTION, BUY_TO_CLOSE_OPTION or SELL_TO_CLOSE_OPTION.
+            contracts (int): The number of contracts.
+            price (float): The limit price.
+            price_type (PriceType, optional): The price type. Defaults to LIMIT.
+
+        Returns:
+            dict: ``strategy`` (e.g. "Long Call (Bullish)"), ``estimatedTotal``, ``breakevenPrice``,
+                ``maxProfit``, ``maxLoss`` and a ``summary`` in words, or the server's error.
+
+        """
+        data = {
+            "transaction": order_type,
+            "symbol": option_symbol,
+            "contracts": contracts,
+            "price_type": price_type,
+            "limit_price": price,
+        }
+        response = self.ft_session._request("post", url=urls.option_order_analysis(), data=data)
+        return response.json()
+
+    def get_complex_option_order_analysis(
+        self,
+        strategy: MultiLegStrategy,
+        legs: list[Leg],
+        limit_type: SpreadLimitType,
+        net_price: float,
+    ) -> dict:
+        """Ask what a multi-leg order would be: its strategy, cost, break-even and worst case.
+
+        The multi-leg counterpart of ``get_option_order_analysis``, with the legs of
+        ``place_complex_order``. It places nothing, and takes no account, preview or instructions.
+
+        Args:
+            strategy (MultiLegStrategy): The strategy, by the value the server expects.
+            legs (list[Leg]): Two to four legs.
+            limit_type (SpreadLimitType): DEBIT if the order pays the net price, CREDIT if it receives it.
+            net_price (float): The net price of the whole order, always positive.
+
+        Returns:
+            dict: ``strategy`` (e.g. "Long Call Vertical Spread (Bullish)"), ``estimatedTotal``,
+                ``breakevenPrice``, ``maxProfit``, ``maxLoss`` and a ``summary`` in words, or the
+                server's error.
+
+        Raises:
+            ValueError: If there are not two to four legs.
+
+        """
+        if not 2 <= len(legs) <= 4:
+            raise ValueError("A multi-leg order has two to four legs.")
+        data: dict[str, object] = {"order_type": strategy}
+        for index, leg in enumerate(legs, start=1):
+            data[f"transaction{index}"] = leg.transaction
+            data[f"symbol{index}"] = leg.symbol
+            data[f"contracts{index}"] = leg.contracts
+        data.update({"limit_type": limit_type, "net_price": net_price})
+        response = self.ft_session._request("post", url=urls.complex_option_order_analysis(), data=data)
+        return response.json()
+
     def modify_spread_order(
         self,
         order_id: str,
