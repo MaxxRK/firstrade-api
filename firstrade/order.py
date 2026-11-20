@@ -394,8 +394,9 @@ class Order:
     ) -> dict:
         """Change the price or size of a working single-leg option order.
 
-        The request mirrors the one the Firstrade mobile app builds for a single-leg edit. Unlike
-        ``modify_spread_order`` it has not been tried against a live order, so treat it as untested.
+        The request mirrors the one the Firstrade mobile app builds for a single-leg edit, and was
+        checked against a live account: the preview and the change were both accepted, and the order
+        list showed the old order as ``ORDER-UPDATED`` and a new one at the new price.
 
         Args:
             order_id (str): The id of a working option order, from the order list.

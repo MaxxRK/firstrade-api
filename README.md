@@ -113,7 +113,7 @@ messages (it names the field it wants: `shares`, not `quantity`, then `price_typ
 | Spread fills, order-list shape, positions | | Everything: the account used could not afford a spread |
 | Spread `BC`/`SC` close codes | Recognised by the validator | Closing an actual position |
 | `modify_spread_order` | Previewed and submitted on a working spread: price changed, old order `ORDER-UPDATED`, new order working | Partial fills; what happens to a spread already partly filled |
-| `modify_option_order` | | Everything: the request was built from the app's code but never sent |
+| `modify_option_order` | Previewed and submitted on a working one-contract limit order: price changed, old order `ORDER-UPDATED`, new order working | Partial fills, stop orders |
 | `modify_stock_order` | Previewed and submitted on a working one-share limit order: price changed, old order `ORDER-UPDATED`, new order working | Market orders, partial fills, stop orders |
 
 The spread details come from the endpoint's own validator messages and from the write-up in
