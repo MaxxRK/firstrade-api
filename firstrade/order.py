@@ -368,7 +368,17 @@ class Order:
                 ``{"result": {"state": "ORDER-PROCESSING"}}``.
 
         """
-        return self._modify(urls.complex_option_order_edit(), order_id, net_price, contracts, dry_run, preview, instructions)
+        return self._modify(
+            urls.complex_option_order_edit(),
+            {
+                "order_id": order_id,
+                "contracts": contracts,
+                "limit_price": net_price,
+                "instructions": instructions,
+            },
+            dry_run,
+            preview,
+        )
 
     def modify_option_order(
         self,
@@ -403,32 +413,82 @@ class Order:
 
         """
         return self._modify(
-            urls.option_order_edit(), order_id, price, contracts, dry_run, preview, instructions,
-            extra={"price_type": price_type, "duration": duration},
+            urls.option_order_edit(),
+            {
+                "order_id": order_id,
+                "contracts": contracts,
+                "price_type": price_type,
+                "limit_price": price,
+                "duration": duration,
+                "instructions": instructions,
+            },
+            dry_run,
+            preview,
         )
 
-    def _modify(
+    def modify_stock_order(
         self,
-        url: str,
         order_id: str,
-        price: float,
-        contracts: int,
-        dry_run: bool,
-        preview: bool,
-        instructions: OrderInstructions,
-        extra: dict | None = None,
+        shares: int,
+        price_type: PriceType = PriceType.LIMIT,
+        price: float | None = None,
+        duration: Duration = Duration.DAY,
+        *,
+        dry_run: bool = True,
+        preview: bool = True,
+        instructions: OrderInstructions = OrderInstructions.NONE,
     ) -> dict:
+        """Change the price or size of a working equity order.
+
+        The request is the one the Firstrade mobile app sends for an equity edit: the order form
+        without ``symbol`` and ``transaction``, which an edit cannot change (the server refuses
+        both). Market and limit orders are supported. A stop or trailing-stop edit needs fields
+        that were not checked, so those price types raise ``ValueError``.
+
+        Firstrade replaces the order as it does for options: the old one is cancelled and a new one
+        entered, so the new order has a new id.
+
+        Args:
+            order_id (str): The id of a working equity order, from the order list.
+            shares (int): The new number of shares.
+            price_type (PriceType, optional): MARKET or LIMIT. Defaults to LIMIT.
+            price (float, optional): The new limit price. Required for a limit order.
+            duration (Duration, optional): The duration. Defaults to DAY.
+            dry_run (bool, optional): If True, only the preview request is sent. Defaults to True.
+            preview (bool, optional): If True, a preview request is sent first. If False, the change
+                is sent directly. Cannot be combined with dry_run. Defaults to True.
+            instructions (OrderInstructions, optional): Order instructions. Defaults to NONE.
+
+        Returns:
+            dict: The preview or the result of the change.
+
+        Raises:
+            ValueError: If price_type is not MARKET or LIMIT, or a limit order has no price.
+
+        """
+        if price_type not in {PriceType.MARKET, PriceType.LIMIT}:
+            raise ValueError("Only market and limit equity orders can be edited here.")
+        if price_type == PriceType.LIMIT and price is None:
+            raise ValueError("A limit order needs a price.")
+        data: dict[str, object] = {
+            "order_id": order_id,
+            "shares": shares,
+            "price_type": price_type,
+            "duration": duration,
+            "instructions": instructions,
+        }
+        if price_type == PriceType.LIMIT:
+            data["limit_price"] = price
+        return self._modify(urls.order_edit(), data, dry_run, preview)
+
+    def _modify(self, url: str, data: dict[str, object], dry_run: bool, preview: bool) -> dict:  # noqa: FBT001
         """Send a cancel/replace request, previewing first unless told not to.
 
         Args:
             url (str): The cancel/replace endpoint.
-            order_id (str): The id of the working order.
-            price (float): The new price.
-            contracts (int): The new number of contracts.
+            data (dict): The request body without the ``preview`` flag.
             dry_run (bool): If True, only the preview request is sent.
             preview (bool): If True, a preview request is sent first.
-            instructions (OrderInstructions): Order instructions.
-            extra (dict | None): Further fields the endpoint takes.
 
         Returns:
             dict: The preview or the result of the change.
@@ -439,13 +499,6 @@ class Order:
         """
         if dry_run and not preview:
             raise ValueError("A dry run is a preview: preview=False cannot be combined with dry_run=True.")
-        data = {
-            "order_id": order_id,
-            "contracts": contracts,
-            "limit_price": price,
-            "instructions": instructions,
-            **(extra or {}),
-        }
         if preview:
             response = self.ft_session._request("post", url=url, data={**data, "preview": "true"})
             if response.status_code != 200 or response.json()["error"] != "":

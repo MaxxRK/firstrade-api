@@ -177,6 +177,18 @@ spread_order = ft_order.place_spread_order(
 )
 print(f"Preview of a spread order: {json.dumps(spread_order, indent=2)}")
 
+# Change a working order. Firstrade cancels it and enters a new one in the same request, so the new
+# order has a new id: read it from the order list afterwards. Replace "Y12345-67" with the id of
+# one of your working orders; dry_run=True only previews the change.
+edit_preview = ft_order.modify_stock_order(
+    order_id="Y12345-67",
+    shares=1,
+    price_type=order.PriceType.LIMIT,
+    price=1.00,
+    dry_run=True,
+)
+print(f"Preview of a stock order change: {json.dumps(edit_preview, indent=2)}")
+
 
 wl = watchlist.Watchlist(ft_ss)
 data = wl.get_watchlists()

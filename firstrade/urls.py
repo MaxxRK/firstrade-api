@@ -100,6 +100,16 @@ def complex_option_order() -> str:
     return "https://api3x.firstrade.com/private/complex_option_order"
 
 
+def order_edit() -> str:
+    """Cancel/replace a working equity order URL for FirstTrade API.
+
+    Returns:
+        str: The URL.
+
+    """
+    return "https://api3x.firstrade.com/private/cxlrpl_stock_order"
+
+
 def option_order_edit() -> str:
     """Cancel/replace a working single-leg option order URL for FirstTrade API.
 
