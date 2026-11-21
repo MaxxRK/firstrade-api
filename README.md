@@ -52,7 +52,7 @@ The code in `test.py` will:
 - [x] Check on placed order status. (thanks to @Cfomodz)
 - [x] Cancel placed orders
 - [x] Options (Orders, Quotes, Greeks)
-- [x] Multi-leg option orders: spread, straddle, butterfly, condor, iron condor, iron butterfly (`Order.place_complex_order`, and `Order.place_spread_order` for two legs; limit only, see [Options](#options) for what has and has not been verified)
+- [x] Multi-leg option orders (`Order.place_complex_order`, and `Order.place_spread_order` for two legs): the six strategies the server accepts, which are spread, straddle, butterfly, condor, iron condor and iron butterfly. Limit orders only. Only the spread has been placed and filled on a live account; the other five were checked as previews. Other strategies (calendar and diagonal spreads, ratio spreads, strangles, a roll) are not supported, or not tried: see [Options](#options)
 - [x] Read one order, find the positions that close together as a strategy, and ask what an order would be before placing it (`FTAccountData.get_order_detail`, `get_close_pairs`, `get_match_close_pairs`, `Order.get_option_order_analysis`, `Order.get_complex_option_order_analysis`)
 - [x] Change the price or size of a working order (`Order.modify_stock_order`, `Order.modify_option_order`, `Order.modify_spread_order`)
 - [x] Order History
@@ -104,6 +104,11 @@ answer comes back untouched with its reference code. What the server said when p
 These were checked as previews only. No multi-leg order other than a spread has been submitted, and no
 strategy has been closed, so treat the placing of a straddle, butterfly, condor or iron order as unverified.
 
+**Strategies this does not cover.** The endpoint takes only the six values above, so a strangle, a calendar
+spread and the other combinations that are not one of them cannot be placed through it. The website's order form
+also offers a roll (`RF`); no value of `order_type` was found for it, and it has not been tried through this
+library. Do not assume that a combination you can build in the Firstrade app or on the website is available here.
+
 #### What an order would be
 
 `get_option_order_analysis(option_symbol, order_type, contracts, price)` and
@@ -123,10 +128,22 @@ the `MultiLegStrategy` values.
 
 #### Skipping the preview
 
-`place_option_order` and `place_spread_order` take `preview` (default `True`). With `preview=False` the real
-order is sent directly, without the `preview=true` request in front of it, which saves one round trip. Any
-problem the preview would have caught then comes back from the order itself. It cannot be combined with
-`dry_run=True`, because a dry run is a preview.
+Every method that places or changes an order takes `preview` and `dry_run`: `place_option_order`,
+`place_spread_order`, `place_complex_order`, `modify_option_order`, `modify_spread_order` and
+`modify_stock_order`. The defaults are `preview=True` and `dry_run=True`, so a call that changes nothing else
+sends one preview request and places or changes nothing.
+
+- `dry_run=False` with the default `preview=True` sends the preview first and then, if it came back clean, the
+  real request.
+- `dry_run=False` with `preview=False` sends the real request directly, without the `preview=true` request in
+  front of it, which saves one round trip. Any problem the preview would have caught then comes back from the
+  order itself.
+- `preview=False` cannot be combined with `dry_run=True`, because a dry run is a preview: the call raises
+  `ValueError` and sends nothing.
+
+Skipping the preview was tried on a live account for single-leg orders, for spreads and for editing a spread. It
+was not tried for the other multi-leg strategies, for editing a single-leg or a stock order, or after a
+rejected preview (a rejected preview stops the real request when `preview=True`, as the tests check).
 
 #### Changing a working order
 
@@ -160,11 +177,11 @@ python -m unittest discover -s tests
 | Spread, `preview=False` | The same request body, sent without a preview, was accepted and filled on a live account: a call debit spread bought and sold back, a put credit spread sold and bought back (TLT, one-dollar wide). It was sent by a client that built the body itself, before this method existed in the installed version, so the method as such was not the one sending | Partial fills |
 | Spread order list and positions | A spread is listed as two rows, one per leg, linked by `other_leg_order_id` and `all_other_leg_ids`, with `mleg` set to `CO`; each row carries its own leg's `avg_exe_price`, so the net fill price is the near leg's less the far leg's. The positions are listed per leg | |
 | Spread `BC`/`SC` close codes | Used to close both spreads above: they filled | |
-| `place_complex_order` | Previews accepted for a straddle, a butterfly (calls and puts, 1:2:1 and 2:4:2, bought and sold), a condor, an iron condor and an iron butterfly | Submitting any of them, closing any of them, and the rules of the condor and the iron strategies |
+| `place_complex_order` | Previews accepted for a straddle, a butterfly (calls and puts, 1:2:1 and 2:4:2, bought and sold), a condor, an iron condor and an iron butterfly | Submitting any of them (with or without a preview), closing any of them, and the rules of the condor and the iron strategies |
 | `get_option_order_analysis`, `get_complex_option_order_analysis` | Answered for a spread, a butterfly and a single call, and the numbers read back | A condor and the iron strategies; the shape of `breakevenPrice` where a strategy has two |
 | `get_order_detail` | Answered for a filled order | An order that is still working, a partly filled one |
 | `get_close_pairs`, `get_match_close_pairs` | Accepted by the server, with the fields it asked for | Anything but an empty answer: no account position was held |
-| `modify_spread_order` | Previewed and submitted on a working spread: price changed, old order `ORDER-UPDATED`, new order working | Partial fills; what happens to a spread already partly filled |
+| `modify_spread_order` | Previewed and submitted on a working spread, and submitted with `preview=False`: price changed, old order `ORDER-UPDATED`, new order working | Partial fills; what happens to a spread already partly filled |
 | `modify_option_order` | Previewed and submitted on a working one-contract limit order: price changed, old order `ORDER-UPDATED`, new order working | Partial fills, stop orders |
 | `modify_stock_order` | Previewed and submitted on a working one-share limit order: price changed, old order `ORDER-UPDATED`, new order working | Market orders, partial fills, stop orders |
 
