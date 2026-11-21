@@ -196,6 +196,20 @@ class FTSession:
         path: Path = Path(self.profile_path) / f"ft_cookies{self.username}.json" if self.profile_path is not None else Path(f"ft_cookies{self.username}.json")
         path.unlink()
 
+    def logout(self) -> dict[str, object]:
+        """End the session on Firstrade's side.
+
+        The call is a POST with no body. Afterwards the session's ``ftat`` and ``sid`` are no longer
+        accepted by the server. Saved cookies on disk are left alone: delete them with ``delete_cookies``
+        if they should go too.
+
+        Returns:
+            dict: The server's answer.
+
+        """
+        response = self._request("post", url=urls.logout())
+        return response.json()
+
     def get_tokens(self) -> dict[str, str | bytes | dict[str, str] | None]:
         """Return the current session tokens (access_token, ftat, sid and cookies)."""
         cookies: dict[str, str] = self.session.cookies.get_dict()
@@ -487,6 +501,23 @@ class FTAccountData:
 
         """
         response = self.session._request("get", url=urls.order_list(account, per_page))
+        return response.json()
+
+    def get_share(self, account: str, symbol: str) -> dict[str, object]:
+        """Retrieve how many shares of a symbol an account holds.
+
+        The server answers for any symbol, including one that does not exist or an option symbol, with
+        ``shares`` of 0 when nothing is held.
+
+        Args:
+            account (str): The account number.
+            symbol (str): The symbol to look up.
+
+        Returns:
+            dict: A dictionary with ``result`` holding ``symbol`` and ``shares``.
+
+        """
+        response = self.session._request("get", url=urls.share(account, symbol))
         return response.json()
 
     def get_order_detail(self, order_id: str) -> dict[str, object]:

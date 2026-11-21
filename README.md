@@ -53,6 +53,7 @@ The code in `test.py` will:
 - [x] Cancel placed orders
 - [x] Options (Orders, Quotes, Greeks)
 - [x] Multi-leg option orders (`Order.place_complex_order`, and `Order.place_spread_order` for two legs): the six strategies the server accepts, which are spread, straddle, butterfly, condor, iron condor and iron butterfly. Limit orders only. Only the spread has been placed and filled on a live account; the other five were checked as previews. Other strategies (calendar and diagonal spreads, ratio spreads, strangles, a roll) are not supported, or not tried: see [Options](#options)
+- [x] How many shares of a symbol an account holds (`FTAccountData.get_share`), and end a session (`FTSession.logout`)
 - [x] Read one order, find the positions that close together as a strategy, and ask what an order would be before placing it (`FTAccountData.get_order_detail`, `get_close_pairs`, `get_match_close_pairs`, `Order.get_option_order_analysis`, `Order.get_complex_option_order_analysis`)
 - [x] Change the price or size of a working order (`Order.modify_stock_order`, `Order.modify_option_order`, `Order.modify_spread_order`)
 - [x] Order History
@@ -120,6 +121,14 @@ Vertical Spread (Bullish)`, `Long Call Butterfly`), `estimatedTotal`, `breakeven
 comes back as `28.999999999999996`), `maxProfit` is the string `"Infinite"` for a long call, and `breakevenPrice` is
 `"-"` for a butterfly.
 
+`FTAccountData.get_share(account, symbol)` returns the number of shares of a symbol an account holds, under
+`result.shares`. The server answers for any symbol, an option symbol or one that does not exist included, with 0 when
+nothing is held.
+
+`FTSession.logout()` ends the session on Firstrade's side with a POST that has no body. Afterwards the session's
+`ftat` and `sid` are refused (401). The saved cookie file is left alone, and a new login that uses it still works
+without a second factor.
+
 `FTAccountData.get_order_detail(order_id)` returns one order in the shape the order list uses, so a spread is still
 one leg per answer. `get_close_pairs` and `get_match_close_pairs` find the positions that can be closed together as
 one strategy. They were only asked of an account with no positions, so the shape of a match is not known.
@@ -179,6 +188,8 @@ python -m unittest discover -s tests
 | Spread `BC`/`SC` close codes | Used to close both spreads above: they filled | |
 | `place_complex_order` | Previews accepted for a straddle, a butterfly (calls and puts, 1:2:1 and 2:4:2, bought and sold), a condor, an iron condor and an iron butterfly | Submitting any of them (with or without a preview), closing any of them, and the rules of the condor and the iron strategies |
 | `get_option_order_analysis`, `get_complex_option_order_analysis` | Answered for a spread, a butterfly and a single call, and the numbers read back | A condor and the iron strategies; the shape of `breakevenPrice` where a strategy has two |
+| `get_share` | Answered with 0 for a symbol, an option symbol and one that does not exist | A symbol that is held: no shares were held |
+| `logout` | On a session of its own: answered `success`, then the same session's `ftat` and `sid` got 401; the saved cookie file did not change, and a new login worked without a second factor | |
 | `get_order_detail` | Answered for a filled order | An order that is still working, a partly filled one |
 | `get_close_pairs`, `get_match_close_pairs` | Accepted by the server, with the fields it asked for | Anything but an empty answer: no account position was held |
 | `modify_spread_order` | Previewed and submitted on a working spread, and submitted with `preview=False`: price changed, old order `ORDER-UPDATED`, new order working | Partial fills; what happens to a spread already partly filled |

@@ -362,6 +362,23 @@ class OrderReadTests(unittest.TestCase):
         self.assertEqual(order.OrderType.BUY_TO_CLOSE_OPTION.value, "BC")
         self.assertIs(order.OrderType.BUY_TO_CLOSE_OPTION, order.OrderType.BUY_TO_COVER)
 
+    def test_share_is_a_get_with_the_symbol_and_the_account(self) -> None:
+        data, session = _accounts()
+        data.get_share("81234567", "TLT")
+        [(method, url, body)] = session.requests
+        self.assertEqual(method, "get")
+        self.assertEqual(url, urls.share("81234567", "TLT"))
+        self.assertTrue(url.endswith("/private/get_share?symbol=TLT&account=81234567"))
+        self.assertEqual(body, {})
+
+    def test_logout_is_a_post_with_no_body(self) -> None:
+        session = _Session({"error": "", "result": "success"})
+        ft = account.FTSession.__new__(account.FTSession)
+        ft._request = session._request  # type: ignore[method-assign]
+        self.assertEqual(ft.logout(), {"error": "", "result": "success"})
+        self.assertEqual(session.requests, [("post", urls.logout(), {})])
+        self.assertTrue(urls.logout().endswith("/sess/logout"))
+
     def test_match_close_pairs_sends_only_the_account(self) -> None:
         data, session = _accounts()
         data.get_match_close_pairs("81234567")

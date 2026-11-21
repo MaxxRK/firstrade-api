@@ -115,6 +115,16 @@ def order_detail(order_id: str) -> str:
     return f"https://api3x.firstrade.com/private/order_detail?order_id={order_id}"
 
 
+def share(account: str, symbol: str) -> str:
+    """Shares held of one symbol URL for FirstTrade API."""
+    return f"https://api3x.firstrade.com/private/get_share?symbol={symbol}&account={account}"
+
+
+def logout() -> str:
+    """End the session URL for FirstTrade API."""
+    return "https://api3x.firstrade.com/sess/logout"
+
+
 def close_pairs() -> str:
     """Positions that can be closed together as one strategy URL for FirstTrade API."""
     return "https://api3x.firstrade.com/private/close_pairs"
