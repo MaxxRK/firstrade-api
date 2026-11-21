@@ -90,6 +90,81 @@ def option_order() -> str:
     return "https://api3x.firstrade.com/private/option_order"
 
 
+def complex_option_order() -> str:
+    """Place multi-leg (spread) option order URL for FirstTrade API.
+
+    Returns:
+        str: The URL.
+
+    """
+    return "https://api3x.firstrade.com/private/complex_option_order"
+
+
+def order_edit() -> str:
+    """Cancel/replace a working equity order URL for FirstTrade API.
+
+    Returns:
+        str: The URL.
+
+    """
+    return "https://api3x.firstrade.com/private/cxlrpl_stock_order"
+
+
+def order_detail(order_id: str) -> str:
+    """Single order detail URL for FirstTrade API."""
+    return f"https://api3x.firstrade.com/private/order_detail?order_id={order_id}"
+
+
+def share(account: str, symbol: str) -> str:
+    """Shares held of one symbol URL for FirstTrade API."""
+    return f"https://api3x.firstrade.com/private/get_share?symbol={symbol}&account={account}"
+
+
+def logout() -> str:
+    """End the session URL for FirstTrade API."""
+    return "https://api3x.firstrade.com/sess/logout"
+
+
+def close_pairs() -> str:
+    """Positions that can be closed together as one strategy URL for FirstTrade API."""
+    return "https://api3x.firstrade.com/private/close_pairs"
+
+
+def match_close_pairs() -> str:
+    """All closable strategy pairs among an account's positions URL for FirstTrade API."""
+    return "https://api3x.firstrade.com/private/match_close_pairs"
+
+
+def option_order_analysis() -> str:
+    """Single-leg option order analysis URL for FirstTrade API."""
+    return "https://api3x.firstrade.com/private/option_order_analysis"
+
+
+def complex_option_order_analysis() -> str:
+    """Multi-leg option order analysis URL for FirstTrade API."""
+    return "https://api3x.firstrade.com/private/complex_option_order_analysis"
+
+
+def option_order_edit() -> str:
+    """Cancel/replace a working single-leg option order URL for FirstTrade API.
+
+    Returns:
+        str: The URL.
+
+    """
+    return "https://api3x.firstrade.com/private/cxlrpl_option_order"
+
+
+def complex_option_order_edit() -> str:
+    """Cancel/replace a working multi-leg (spread) option order URL for FirstTrade API.
+
+    Returns:
+        str: The URL.
+
+    """
+    return "https://api3x.firstrade.com/private/cxlrpl_complexoption_order"
+
+
 def watchlists() -> str:
     """Watchlist collection URL for FirstTrade API (list all / create)."""
     return "https://api3x.firstrade.com/private/watchlists"
