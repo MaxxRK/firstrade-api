@@ -1,5 +1,6 @@
 #Custom
 *_*.py
+!tests/*.py
 *cookies*.json
 *.lock
 
