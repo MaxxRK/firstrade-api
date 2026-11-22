@@ -6,7 +6,7 @@ long_description = pathlib.Path("README.md").read_text()
 
 setuptools.setup(
     name="firstrade",
-    version="0.0.39",
+    version="0.0.41",
     author="MaxxRK",
     author_email="maxxrk@pm.me",
     description="An unofficial API for Firstrade",
@@ -14,7 +14,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     license="MIT",
     url="https://github.com/MaxxRK/firstrade-api",
-    download_url="https://github.com/MaxxRK/firstrade-api/archive/refs/tags/0039.tar.gz",
+    download_url="https://github.com/MaxxRK/firstrade-api/archive/refs/tags/0040.tar.gz",
     keywords=["FIRSTRADE", "API"],
     install_requires=["requests", "pyotp"],
     packages=["firstrade"],
